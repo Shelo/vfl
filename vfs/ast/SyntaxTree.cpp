@@ -61,6 +61,11 @@ llvm::Value * If::accept(Generator * generator)
 	return generator->visit(*this);
 }
 
+llvm::Value * Print::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}
+
 llvm::Value * Assignment::accept(Generator * generator)
 {
 	return generator->visit(*this);

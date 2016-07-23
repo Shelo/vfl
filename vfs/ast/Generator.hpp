@@ -76,4 +76,5 @@ public:
 	llvm::Value * visit(ExpressionStatement & node);
 	llvm::Value * visit(Assignment & node);
 	llvm::Value * visit(If & node);
+	llvm::Value * visit(Print & node);
 };

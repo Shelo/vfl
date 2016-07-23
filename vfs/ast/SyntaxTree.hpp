@@ -152,6 +152,7 @@ struct Return : Statement
 	std::shared_ptr<Expression> expression;
 	
 	Return(std::shared_ptr<Expression> expression) : expression(expression) {}
+	Return() : expression(std::shared_ptr<Expression>(nullptr)) {}
 	
 	virtual llvm::Value * accept(Generator * generator);
 };
@@ -165,6 +166,16 @@ struct If : Statement
 	If(std::shared_ptr<Expression> condition, std::shared_ptr<Block> thenBlock, std::shared_ptr<Block> elseBlock) :
 		condition(condition), thenBlock(thenBlock), elseBlock(elseBlock) {}
 	
+	virtual llvm::Value * accept(Generator * generator);
+};
+
+struct Print : Statement
+{
+	std::shared_ptr<Expression> expression;
+	
+	Print(std::shared_ptr<Expression> expression) :
+		expression(expression) {}
+
 	virtual llvm::Value * accept(Generator * generator);
 };
 

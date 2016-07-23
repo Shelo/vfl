@@ -1,11 +1,18 @@
-@Fibonacci (int n) : int
-	if n < 2 {
-		return n
+@FindEven (int n)
+	if n <= 0 {
+		return void
 	}
 
-	return @(n - 1) + @(n - 2)
+	if n % 2 == 0 {
+		print n
+		return @FindEven(n - 2)
+	}
+	
+	@FindEven(n - 1)
 @End
 
 @Main () : int
-	return @Fibonacci(40)
+	@FindEven(20)
+
+	return 0
 @End

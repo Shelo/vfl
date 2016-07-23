@@ -7,7 +7,7 @@ vfs/gen/Lexer.cpp: vfs/gen/Parser.cpp
 	lex -o $@ vfs/parser/lexer.l
 
 clean:
-	rm -f vfsc
+	rm -f builder/vfsc
 	rm -f vfs/gen/*
 
 vfsc: clean vfs/gen/Lexer.cpp

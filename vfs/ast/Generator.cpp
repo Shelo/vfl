@@ -1,9 +1,14 @@
 #include "Generator.hpp"
 
 
-
 void Generator::generate(std::vector<std::shared_ptr<Function>> program)
 {
+	module->getOrInsertFunction("printf",
+			llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(*context),
+			llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+			true)
+	);
+
 	for (auto f : program) {
 		f->accept(this);
 	}
@@ -48,6 +53,10 @@ llvm::Value * Generator::visit(Function & node)
 	}
 	
 	node.block->accept(this);
+	
+	if (builder.GetInsertBlock()->getTerminator() == nullptr) {
+		builder.CreateRetVoid();
+	}
 	
 	popScope();
 
@@ -144,7 +153,17 @@ llvm::Value * Generator::visit(FunctionCall & node)
 
 llvm::Value * Generator::visit(Return & node)
 {
-	return builder.CreateRet(node.expression->accept(this));
+	llvm::Value * returnValue = nullptr;
+	
+	if (node.expression) {
+		returnValue = node.expression->accept(this);
+		
+		if (returnValue->getType()->isVoidTy()) {
+			returnValue = nullptr;
+		}
+	}
+	
+	return builder.CreateRet(returnValue);
 }
 
 llvm::Value * Generator::visit(ExpressionStatement & node)
@@ -154,8 +173,7 @@ llvm::Value * Generator::visit(ExpressionStatement & node)
 
 llvm::Value * Generator::visit(Identifier & node)
 {	
-	auto value = scope().get(node.name);
-	return builder.CreateLoad(value);
+	return builder.CreateLoad(scope().get(node.name));
 }
 
 llvm::Value * Generator::visit(Integer & node)
@@ -188,6 +206,8 @@ llvm::Value * Generator::visit(BinaryOp & node)
 		instruction = llvm::Instruction::Mul;
 	} else if (node.op == "/") {
 		instruction = llvm::Instruction::SDiv;
+	} else if (node.op == "%") {
+		return builder.CreateSRem(left, right);
 	} else if (node.op == "==") {
 		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, left, right);
 	} else if (node.op == "!=") {
@@ -240,6 +260,32 @@ llvm::Value * Generator::visit(If & node)
 
 	function->getBasicBlockList().push_back(mergeBlock);
 	builder.SetInsertPoint(mergeBlock);
-
+	
 	return nullptr;
+}
+
+llvm::Value * Generator::visit(Print & node)
+{
+	auto print = module->getFunction("printf");
+
+	auto format = llvm::ConstantDataArray::getString(*context, "%d\n");
+	auto formatVar = new llvm::GlobalVariable(
+		*module, llvm::ArrayType::get(llvm::IntegerType::get(*context, 8), 4),
+		true, llvm::GlobalValue::PrivateLinkage, format, ".str");
+
+	auto zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(*context));
+
+	// these are to reference the array, first zero is for offset from the pointer, the second
+	// zero is for offset in the elements.
+	std::vector<llvm::Constant*> indices;
+	indices.push_back(zero);
+	indices.push_back(zero);
+
+	auto ptr = llvm::ConstantExpr::getGetElementPtr(formatVar, indices);
+	
+	std::vector<llvm::Value*> arguments;
+	arguments.push_back(ptr);
+	arguments.push_back(node.expression->accept(this));
+
+	return builder.CreateCall(print, arguments);
 }

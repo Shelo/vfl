@@ -1,0 +1,11 @@
+@Fibonacci (int n) : int
+	if n < 2 {
+		return n
+	}
+
+	return @(n - 1) + @(n - 2)
+@End
+
+@Main () : int
+	return @Fibonacci(40)
+@End

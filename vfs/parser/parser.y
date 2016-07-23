@@ -35,9 +35,9 @@
 	float floatNumber;
 }
 
-%token VAR ASSIGN END RETURN IF ELSE
+%token VAR ASSIGN END RETURN IF ELSE PRINT VOID
 
-%token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ
+%token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ MOD
 %token <integer> INTEGER
 %token <floatNumber> FLOAT
 %token <string> FUNCTION_NAME
@@ -47,14 +47,15 @@
 %type <function> function
 %type <parameterList> parameterList
 %type <block> block
-%type <statement> statement assignment return variableDeclaration if
+%type <statement> statement assignment return variableDeclaration if print
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
 
-%left EQUALS NEQ
-%left LESS GREATER LEQ GEQ
+%left EQ NEQ
+%left LESS GREATER
+%left LEQ GEQ
 %left PLUS MINUS
-%left MULT DIV
+%left MULT DIV MOD
 
 %start program
 
@@ -138,6 +139,7 @@ statement:
 	| return
 	| variableDeclaration
 	| if
+	| print
 	;
 
 assignment:
@@ -206,6 +208,10 @@ expression:
 	{
 		$$ = new BinaryOp(std::shared_ptr<Expression>($1), ">=", std::shared_ptr<Expression>($3));
 	}
+	| expression MOD expression
+	{
+		$$ = new BinaryOp(std::shared_ptr<Expression>($1), "%", std::shared_ptr<Expression>($3));
+	}
 	| '(' expression ')'
 	{
 		$$ = $2;
@@ -250,7 +256,11 @@ expressionList:
 	;
 
 return:
-	RETURN expression
+	RETURN VOID
+	{
+		$$ = new Return();
+	}
+	| RETURN expression
 	{
 		$$ = new Return(std::shared_ptr<Expression>($2));
 	}
@@ -266,3 +276,11 @@ if:
 		$$ = new If(std::shared_ptr<Expression>($2), std::shared_ptr<Block>($4), std::shared_ptr<Block>($8));
 	}
 	;
+
+print:
+	PRINT expression
+	{
+		$$ = new Print(std::shared_ptr<Expression>($2));
+	}
+	;
+	

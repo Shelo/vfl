@@ -15,6 +15,8 @@
 %x S_STRING
 %%
 
+void 					TOKEN(VOID);
+print					TOKEN(PRINT);
 var                    	TOKEN(VAR);
 return                 	TOKEN(RETURN);
 if                     	TOKEN(IF);
@@ -30,6 +32,7 @@ else                   	TOKEN(ELSE);
 \>						TOKEN(GREATER);
 \<=						TOKEN(LEQ);
 \>=						TOKEN(GEQ);
+\%						TOKEN(MOD);
 =                      	TOKEN(ASSIGN);
 \/\/                   	BEGIN(S_COMMENT);
 \"                     	BEGIN(S_STRING);
