@@ -3,12 +3,6 @@
 
 void Generator::generate(std::vector<std::shared_ptr<Function>> program)
 {
-	module->getOrInsertFunction("printf",
-			llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(*context),
-			llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
-			true)
-	);
-
 	for (auto f : program) {
 		f->accept(this);
 	}
@@ -266,7 +260,11 @@ llvm::Value * Generator::visit(If & node)
 
 llvm::Value * Generator::visit(Print & node)
 {
-	auto print = module->getFunction("printf");
+	auto print = module->getOrInsertFunction("printf",
+			llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(*context),
+			llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+			true)
+	);
 
 	auto format = llvm::ConstantDataArray::getString(*context, "%d\n");
 	auto formatVar = new llvm::GlobalVariable(
