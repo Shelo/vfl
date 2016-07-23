@@ -19,12 +19,12 @@ llvm::Value * Generator::visit(Function & node)
 	std::string name = node.name;
 	if (node.name == "Main") {
 		name = "main";
+	} else {
+		name = node.getVirtualName();
 	}
 
-	auto virtualName = node.getVirtualName();
-
 	auto type = llvm::FunctionType::get(node.type->getType(), llvm::makeArrayRef(parameterTypes), false);
-	auto function = llvm::Function::Create(type, llvm::Function::ExternalLinkage, virtualName, module.get());
+	auto function = llvm::Function::Create(type, llvm::Function::ExternalLinkage, name, module.get());
 	lastFunction = function;
 	
 	// create the block for this function.
@@ -61,11 +61,12 @@ llvm::Value * Generator::visit(Parameter & parameter)
 
 llvm::Value * Generator::visit(Block & node)
 {
+	llvm::Value * last = nullptr;
 	for (auto i : node.statements) {
-		i->accept(this);
+		last = i->accept(this);
 	}
 	
-	return nullptr;
+	return last;
 }
 
 llvm::Value * Generator::visit(VarDecl & node)
@@ -172,32 +173,73 @@ llvm::Value * Generator::visit(String & node)
 	return nullptr;
 }
 
-llvm::Instruction::BinaryOps getInstructionForOperator(std::string op)
-{
-	if (op == "+") {
-		return llvm::Instruction::Add; 
-	} else if (op == "-") {
-		return llvm::Instruction::Sub;
-	} else if (op == "*") {
-		return llvm::Instruction::Mul;
-	} else if (op == "/") {
-		return llvm::Instruction::SDiv;
-	}
-	
-	throw "Unkown operator: " + op;	
-}
-
 llvm::Value * Generator::visit(BinaryOp & node)
 {	
 	auto left = node.left->accept(this);
 	auto right = node.right->accept(this);
 
-	auto instruction = getInstructionForOperator(node.op);
+	llvm::Instruction::BinaryOps instruction;
+	
+	if (node.op == "+") {
+		instruction = llvm::Instruction::Add; 
+	} else if (node.op == "-") {
+		instruction = llvm::Instruction::Sub;
+	} else if (node.op == "*") {
+		instruction = llvm::Instruction::Mul;
+	} else if (node.op == "/") {
+		instruction = llvm::Instruction::SDiv;
+	} else if (node.op == "==") {
+		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, left, right);
+	} else if (node.op == "!=") {
+		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, left, right);
+	} else if (node.op == "<") {
+		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, left, right);
+	} else if (node.op == ">") {
+		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, left, right);
+	} else if (node.op == "<=") {
+		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLE, left, right);
+	} else if (node.op == ">=") {
+		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGE, left, right);
+	} else {
+		throw "Unknown binary operator: " + node.op;
+	}
 
 	return llvm::BinaryOperator::Create(instruction, left, right, "", builder.GetInsertBlock());
 }
 
 llvm::Value * Generator::visit(If & node)
-{	
+{
+	auto condition = node.condition->accept(this);
+	
+	auto function = builder.GetInsertBlock()->getParent();
+	
+	auto thenBlock = llvm::BasicBlock::Create(*context, "then", function);
+	auto elseBlock = llvm::BasicBlock::Create(*context, "else");
+	auto mergeBlock = llvm::BasicBlock::Create(*context, "ifcont");
+
+	if (node.elseBlock) {
+		builder.CreateCondBr(condition, thenBlock, elseBlock);
+	} else {
+		builder.CreateCondBr(condition, thenBlock, mergeBlock);
+	}
+
+	builder.SetInsertPoint(thenBlock);
+	node.thenBlock->accept(this);
+	thenBlock = builder.GetInsertBlock();
+	
+	if (thenBlock->getTerminator() == nullptr) {
+		builder.CreateBr(mergeBlock);
+	}
+
+	if (node.elseBlock) {
+		function->getBasicBlockList().push_back(elseBlock);
+		builder.SetInsertPoint(elseBlock);
+		node.elseBlock->accept(this);
+		builder.CreateBr(mergeBlock);
+	}
+
+	function->getBasicBlockList().push_back(mergeBlock);
+	builder.SetInsertPoint(mergeBlock);
+
 	return nullptr;
 }

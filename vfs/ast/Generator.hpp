@@ -60,7 +60,7 @@ public:
 		
 		throw "Unknown symbol: " + name;
 	}
-	
+
 	llvm::Value * visit(Block & node);
 	llvm::Value * visit(Function & node);
 	llvm::Value * visit(Parameter & node);

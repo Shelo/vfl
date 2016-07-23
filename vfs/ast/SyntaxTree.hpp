@@ -80,7 +80,7 @@ struct Parameter
 struct Block
 {
 	std::vector<std::shared_ptr<Statement>> statements;
-	bool entry = false;
+	bool returns = false;
 	
 	virtual llvm::Value * accept(Generator * generator);
 };
@@ -95,10 +95,7 @@ struct Function
 	
 	Function(std::string name, std::string version, std::vector<std::shared_ptr<Parameter>> parameters,
 			std::shared_ptr<Type> type, std::shared_ptr<Block> block) :
-		name(name), version(version), parameters(parameters), block(block), type(type)
-	{
-		block->entry = true;
-	}
+		name(name), version(version), parameters(parameters), block(block), type(type) {}
 
 	Function(std::string name, std::string version, std::vector<std::shared_ptr<Parameter>> parameters,
 			std::shared_ptr<Block> block) :
@@ -162,10 +159,11 @@ struct Return : Statement
 struct If : Statement
 {
 	std::shared_ptr<Expression> condition;
-	std::shared_ptr<Block> block;
+	std::shared_ptr<Block> thenBlock;
+	std::shared_ptr<Block> elseBlock;
 	
-	If(std::shared_ptr<Expression> condition, std::shared_ptr<Block> block) :
-		condition(condition), block(block) {}
+	If(std::shared_ptr<Expression> condition, std::shared_ptr<Block> thenBlock, std::shared_ptr<Block> elseBlock) :
+		condition(condition), thenBlock(thenBlock), elseBlock(elseBlock) {}
 	
 	virtual llvm::Value * accept(Generator * generator);
 };

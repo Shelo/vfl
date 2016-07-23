@@ -35,9 +35,9 @@
 	float floatNumber;
 }
 
-%token VAR ASSIGN END RETURN IF
+%token VAR ASSIGN END RETURN IF ELSE
 
-%token <token> PLUS MINUS MULT DIV EQUALS
+%token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ
 %token <integer> INTEGER
 %token <floatNumber> FLOAT
 %token <string> FUNCTION_NAME
@@ -51,7 +51,8 @@
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
 
-%left EQUALS
+%left EQUALS NEQ
+%left LESS GREATER LEQ GEQ
 %left PLUS MINUS
 %left MULT DIV
 
@@ -181,9 +182,29 @@ expression:
 	{
 		$$ = new BinaryOp(std::shared_ptr<Expression>($1), "-", std::shared_ptr<Expression>($3));
 	}
-	| expression EQUALS expression
+	| expression EQ expression
 	{
 		$$ = new BinaryOp(std::shared_ptr<Expression>($1), "==", std::shared_ptr<Expression>($3));
+	}
+	| expression NEQ expression
+	{
+		$$ = new BinaryOp(std::shared_ptr<Expression>($1), "!=", std::shared_ptr<Expression>($3));
+	}
+	| expression LESS expression
+	{
+		$$ = new BinaryOp(std::shared_ptr<Expression>($1), "<", std::shared_ptr<Expression>($3));
+	}
+	| expression GREATER expression
+	{
+		$$ = new BinaryOp(std::shared_ptr<Expression>($1), ">", std::shared_ptr<Expression>($3));
+	}
+	| expression LEQ expression
+	{
+		$$ = new BinaryOp(std::shared_ptr<Expression>($1), "<=", std::shared_ptr<Expression>($3));
+	}
+	| expression GEQ expression
+	{
+		$$ = new BinaryOp(std::shared_ptr<Expression>($1), ">=", std::shared_ptr<Expression>($3));
 	}
 	| '(' expression ')'
 	{
@@ -238,6 +259,10 @@ return:
 if:
 	IF expression '{' block '}'
 	{
-		$$ = new If(std::shared_ptr<Expression>($2), std::shared_ptr<Block>($4));
+		$$ = new If(std::shared_ptr<Expression>($2), std::shared_ptr<Block>($4), std::shared_ptr<Block>(nullptr));
+	}
+	| IF expression '{' block '}' ELSE '{' block '}'
+	{
+		$$ = new If(std::shared_ptr<Expression>($2), std::shared_ptr<Block>($4), std::shared_ptr<Block>($8));
 	}
 	;
