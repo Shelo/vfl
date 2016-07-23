@@ -1,3 +1,0 @@
-@Main() :int
-	return 5 % 2
-@End

@@ -28,6 +28,7 @@
 	Function * function;
 	Statement * statement;
 	Expression * expression;
+	Type * type;
 
 	std::string * string;
 	int integer;
@@ -47,6 +48,7 @@
 %type <function> function
 %type <parameterList> parameterList
 %type <block> block
+%type <type> typeName
 %type <statement> statement assignment return variableDeclaration if print
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
@@ -93,29 +95,40 @@ parameterList:
 	{
 		$$ = new std::vector<std::shared_ptr<Parameter>>();
 	}
-	| parameterList ',' IDENTIFIER IDENTIFIER
+	| parameterList ',' typeName IDENTIFIER
 	{
-		$1->push_back(std::make_shared<Parameter>(*$4, Type::create(*$3)));
+		$1->push_back(std::make_shared<Parameter>(*$4, std::shared_ptr<Type>($3)));
 	}
-	| IDENTIFIER IDENTIFIER
+	| typeName IDENTIFIER
 	{
 		$$ = new std::vector<std::shared_ptr<Parameter>>();
-		$$->push_back(std::make_shared<Parameter>(*$2, Type::create(*$1)));
+		$$->push_back(std::make_shared<Parameter>(*$2, std::shared_ptr<Type>($1)));
 	}
 	;
 
 variableDeclaration:
-	VAR IDENTIFIER ':' IDENTIFIER ASSIGN expression
+	VAR IDENTIFIER ':' typeName ASSIGN expression
 	{
-		$$ = new VarDecl(*$2, Type::create(*$4), std::shared_ptr<Expression>($6));
+		$$ = new VarDecl(*$2, std::shared_ptr<Type>($4), std::shared_ptr<Expression>($6));
 	}
 	| VAR IDENTIFIER ASSIGN expression
 	{
 		$$ = new VarDecl(*$2, std::shared_ptr<Type>(nullptr), std::shared_ptr<Expression>($4));
 	}
-	| VAR IDENTIFIER ':' IDENTIFIER
+	| VAR IDENTIFIER ':' typeName
 	{
-		$$ = new VarDecl(*$2, Type::create(*$4));
+		$$ = new VarDecl(*$2, std::shared_ptr<Type>($4));
+	}
+	;
+
+typeName:
+	IDENTIFIER
+	{
+		$$ = new Type(*$1);
+	}
+	| IDENTIFIER '[' ']'
+	{
+		$$ = new ArrayType(*$1);
 	}
 	;
 

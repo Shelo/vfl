@@ -53,7 +53,7 @@ struct Type
 		return std::make_shared<Type>("void");
 	}
 	
-	llvm::Type * getType()
+	virtual llvm::Type * getType()
 	{
 		if (name == "int") {
 			return llvm::Type::getInt64Ty(llvm::getGlobalContext());
@@ -64,6 +64,27 @@ struct Type
 		}
 
 		return llvm::Type::getVoidTy(llvm::getGlobalContext());
+	}
+	
+	virtual bool isArray()
+	{
+		return false;
+	}
+};
+
+struct ArrayType : Type
+{
+	ArrayType(std::string name) : Type(name) {}
+
+	virtual llvm::Type * getType()
+	{
+		auto type = Type::getType();
+		return llvm::PointerType::getUnqual(type);
+	}
+
+	virtual bool isArray()
+	{
+		return true;
 	}
 };
 
@@ -266,5 +287,14 @@ struct Float : Expression
 	
 	Float(float value) : value(value) {}
 	
+	virtual llvm::Value * accept(Generator * generator);
+};
+
+struct Array : Expression
+{
+	std::vector<std::shared_ptr<Expression>> values;
+
+	Array(std::vector<std::shared_ptr<Expression>> values) : values(values) {}
+
 	virtual llvm::Value * accept(Generator * generator);
 };

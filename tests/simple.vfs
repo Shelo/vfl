@@ -1,18 +1,3 @@
-@FindEven (int n)
-	if n <= 0 {
-		return void
-	}
-
-	if n % 2 == 0 {
-		print n
-		return @FindEven(n - 2)
-	}
-	
-	@FindEven(n - 1)
-@End
-
-@Main () : int
-	@FindEven(20)
-
+@Main (int[] a) : int
 	return 0
 @End
