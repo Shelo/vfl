@@ -1,0 +1,14 @@
+@Add (int number, int increment) : int
+	return number + increment
+@End
+
+
+@Add (andOneMore; int number, int increment) : int
+	return @(number, increment) + 1
+@End
+
+
+@Main () : int
+	var n = @Add(andOneMore; 5, 10)
+	return n
+@End
