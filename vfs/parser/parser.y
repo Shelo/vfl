@@ -78,17 +78,17 @@ function:
 	{
 		$$ = new Function(*$1, "", *$3, std::shared_ptr<Block>($5));
 	}
-	| FUNCTION_NAME '(' parameterList ')' ':' IDENTIFIER block END
+	| FUNCTION_NAME '(' parameterList ')' ':' typeName block END
 	{
-		$$ = new Function(*$1, "", *$3, Type::create(*$6), std::shared_ptr<Block>($7));
+		$$ = new Function(*$1, "", *$3, std::shared_ptr<Type>($6), std::shared_ptr<Block>($7));
 	}
 	| FUNCTION_NAME '(' IDENTIFIER ';' parameterList ')' block END
 	{
 		$$ = new Function(*$1, *$3, *$5, std::shared_ptr<Block>($7));
 	}
-	| FUNCTION_NAME '(' IDENTIFIER ';' parameterList ')' ':' IDENTIFIER block END
+	| FUNCTION_NAME '(' IDENTIFIER ';' parameterList ')' ':' typeName block END
 	{
-		$$ = new Function(*$1, *$3, *$5, Type::create(*$8), std::shared_ptr<Block>($9));
+		$$ = new Function(*$1, *$3, *$5, std::shared_ptr<Type>($8), std::shared_ptr<Block>($9));
 	}
 	;
 

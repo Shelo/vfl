@@ -1,5 +1,11 @@
+
+
 @Main ()
 	var array:int[5]
+	array[3] = 100
+	var array2 = array
 	array[3] = 200
+	
 	print array[3]
+	print array2[3]
 End

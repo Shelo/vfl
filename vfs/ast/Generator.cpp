@@ -192,8 +192,18 @@ llvm::Value * Generator::visit(ExpressionStatement & node)
 }
 
 llvm::Value * Generator::visit(Identifier & node)
-{	
-	return builder.CreateLoad(scope().get(node.name));
+{
+	auto value = scope().get(node.name);
+	auto typeId = value->getType()->getTypeID();
+	
+	// NOTE: harcoded because there's a mismatch between the ArrayTyID (14) and
+	// the actual Array ID in the version of LLVM installed on my machine.
+	// if this is an aggregate type, return the value as reference.
+	if (typeId == 14) {
+		return value;
+	}
+	
+	return builder.CreateLoad(value);
 }
 
 llvm::Value * Generator::visit(Integer & node)
