@@ -14,7 +14,7 @@ llvm::Value * Generator::visit(Function & node)
 	for (auto i : node.parameters) {
 		parameterTypes.push_back(i->type->getType());
 	}
-	
+
 	std::string name = node.name;
 	if (node.name == "Main") {
 		name = "main";
@@ -27,8 +27,7 @@ llvm::Value * Generator::visit(Function & node)
 	lastFunction = function;
 	
 	// create the block for this function.
-	lastBlock = llvm::BasicBlock::Create(*context, "entry", function);
-	builder.SetInsertPoint(lastBlock);
+	builder.SetInsertPoint(llvm::BasicBlock::Create(*context, "entry", function));
 	
 	// create the scope.
 	createScope();
@@ -75,9 +74,12 @@ llvm::Value * Generator::visit(Block & node)
 llvm::Value * Generator::visit(VarDecl & node)
 {
 	llvm::Value * initial = nullptr;
+
 	if (node.expression != nullptr) {
 		initial = node.expression->accept(this);
 	}
+	
+	llvm::Value * value;
 	
 	llvm::Type * type;
 	if (node.type == nullptr) {
@@ -89,22 +91,46 @@ llvm::Value * Generator::visit(VarDecl & node)
 	} else {
 		type = node.type->getType();
 	}
+	
+	// NOTE: for some reason, in my version of LLVM, ArrayTyID is 13, but
+	// for an array the id is actually 14.
+	if (type->getTypeID() == 14 && initial != nullptr) {
+		initial->setName(node.name);
+		value = initial;
+	} else if (type->getTypeID() == 14) {
+		value = builder.CreateAlloca(type, nullptr, node.name);
+		
+		// TODO: fill the array with default values.
+	} else {
+		value = builder.CreateAlloca(type, nullptr, node.name);
 
-	// allocate memory on the stack.
-	auto value = builder.CreateAlloca(type, nullptr, node.name);
-	scope().add(node.name, value);
-
-	if (initial != nullptr) {
-		builder.CreateStore(initial, value);
+		if (initial != nullptr) {
+			builder.CreateStore(initial, value);
+		}
 	}
+
+	scope().add(node.name, value);	
 
 	return value;
 }
 
 llvm::Value * Generator::visit(Assignment & node)
 {
-	auto value = scope().get(node.variable);	
+	auto value = scope().get(node.variable);
 	return builder.CreateStore(node.expression->accept(this), value);
+}
+
+llvm::Value * Generator::visit(ArrayAssignment & node)
+{
+	auto array = scope().get(node.variable);
+
+	auto zero = llvm::ConstantInt::get(*context, llvm::APInt(64, 0, true));
+
+	auto value = node.expression->accept(this);
+	auto index = node.index->accept(this);
+	auto ptr = llvm::GetElementPtrInst::Create(array, { zero, index }, "", builder.GetInsertBlock());
+
+	return builder.CreateStore(value, ptr);
 }
 
 llvm::Value * Generator::visit(VersionInv & node)
@@ -156,7 +182,7 @@ llvm::Value * Generator::visit(Return & node)
 			returnValue = nullptr;
 		}
 	}
-	
+
 	return builder.CreateRet(returnValue);
 }
 
@@ -275,15 +301,44 @@ llvm::Value * Generator::visit(Print & node)
 
 	// these are to reference the array, first zero is for offset from the pointer, the second
 	// zero is for offset in the elements.
-	std::vector<llvm::Constant*> indices;
-	indices.push_back(zero);
-	indices.push_back(zero);
-
-	auto ptr = llvm::ConstantExpr::getGetElementPtr(formatVar, indices);
+	auto ptr = llvm::GetElementPtrInst::Create(formatVar, { zero, zero }, "", builder.GetInsertBlock());
 	
 	std::vector<llvm::Value*> arguments;
 	arguments.push_back(ptr);
 	arguments.push_back(node.expression->accept(this));
 
 	return builder.CreateCall(print, arguments);
+}
+
+llvm::Value * Generator::visit(Array & node)
+{
+	auto first = node.elements[0]->accept(this);
+	auto type = llvm::ArrayType::get(first->getType(), node.elements.size());
+	auto array = builder.CreateAlloca(type);
+	
+	auto zero = llvm::ConstantInt::get(*context, llvm::APInt(64, 0, true));
+
+	uint i = 0;
+	for (auto e : node.elements) {
+		auto value = e->accept(this);
+		auto index = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), i, true);
+		auto ptr = llvm::GetElementPtrInst::Create(array, { zero, index }, "", builder.GetInsertBlock());
+		builder.CreateStore(value, ptr);
+		i++;
+	}
+
+	return array;
+}
+
+llvm::Value * Generator::visit(ArrayIndex & node)
+{
+	auto array = scope().get(node.name);
+	
+	auto zero = llvm::ConstantInt::get(*context, llvm::APInt(64, 0, true));
+	auto index = node.expression->accept(this);
+	auto ptr = llvm::GetElementPtrInst::Create(array, { zero, index }, "", builder.GetInsertBlock());
+
+	auto value = builder.CreateLoad(ptr);
+	
+	return value;
 }

@@ -80,3 +80,18 @@ llvm::Value * ExpressionStatement::accept(Generator * generator)
 {
 	return generator->visit(*this);
 }
+
+llvm::Value * Array::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}
+
+llvm::Value * ArrayIndex::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}
+
+llvm::Value * ArrayAssignment::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}

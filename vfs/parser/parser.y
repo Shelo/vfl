@@ -59,6 +59,8 @@
 %left PLUS MINUS
 %left MULT DIV MOD
 
+%right IDENTIFIER '['
+
 %start program
 
 %%
@@ -126,9 +128,9 @@ typeName:
 	{
 		$$ = new Type(*$1);
 	}
-	| IDENTIFIER '[' ']'
+	| IDENTIFIER '[' INTEGER ']'
 	{
-		$$ = new ArrayType(*$1);
+		$$ = new ArrayType(*$1, $3);
 	}
 	;
 
@@ -160,6 +162,10 @@ assignment:
 	{
 		$$ = new Assignment(*$1, std::shared_ptr<Expression>($3));
 	}
+	| IDENTIFIER '[' expression ']' ASSIGN expression
+	{
+		$$ = new ArrayAssignment(*$1, std::shared_ptr<Expression>($3), std::shared_ptr<Expression>($6));
+	}
 	;
 
 expression:
@@ -168,6 +174,10 @@ expression:
 	| STRING
 	{
 		$$ = new String(*$1);
+	}
+	| IDENTIFIER '[' expression ']'
+	{
+		$$ = new ArrayIndex(*$1, std::shared_ptr<Expression>($3));
 	}
 	| IDENTIFIER
 	{
@@ -228,6 +238,10 @@ expression:
 	| '(' expression ')'
 	{
 		$$ = $2;
+	}
+	| '[' expressionList ']'
+	{
+		$$ = new Array(*$2);
 	}
 	;
 

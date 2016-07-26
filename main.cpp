@@ -11,9 +11,9 @@ std::vector<std::shared_ptr<Function>> program;
 int main(int argc, char *argv[])
 {
 	Generator generator;
-	
+
 	yyparse();
-	
+
 	generator.generate(program);
 	generator.dump();
 }

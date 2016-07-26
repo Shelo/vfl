@@ -7,4 +7,5 @@ RUN dnf install -y  llvm-devel \
 					gcc-c++ \
 					make \
 					redhat-rpm-config \
-					findutils
+					findutils \
+					clang-devel

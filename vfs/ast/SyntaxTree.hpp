@@ -17,8 +17,6 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/TargetSelect.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -66,6 +64,19 @@ struct Type
 		return llvm::Type::getVoidTy(llvm::getGlobalContext());
 	}
 	
+	llvm::Value * getDefaultValue(std::shared_ptr<llvm::LLVMContext> context)
+	{
+		if (name == "int") {
+			return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0, true);
+		}
+
+		if (name == "float") {
+			return llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), 0);
+		}
+		
+		return nullptr;
+	}
+	
 	virtual bool isArray()
 	{
 		return false;
@@ -74,12 +85,14 @@ struct Type
 
 struct ArrayType : Type
 {
-	ArrayType(std::string name) : Type(name) {}
+	int size;
+	
+	ArrayType(std::string name, int size) : Type(name), size(size) {}
 
 	virtual llvm::Type * getType()
 	{
 		auto type = Type::getType();
-		return llvm::PointerType::getUnqual(type);
+		return llvm::ArrayType::get(type, size);
 	}
 
 	virtual bool isArray()
@@ -164,6 +177,18 @@ struct Assignment : Statement
 	
 	Assignment(std::string variable, std::shared_ptr<Expression> expression) :
 		variable(variable), expression(expression) {}
+	
+	virtual llvm::Value * accept(Generator * generator);
+};
+
+struct ArrayAssignment : Statement
+{
+	std::string variable;
+	std::shared_ptr<Expression> index;
+	std::shared_ptr<Expression> expression;
+
+	ArrayAssignment(std::string variable, std::shared_ptr<Expression> index, std::shared_ptr<Expression> expression) :
+		variable(variable), index(index), expression(expression) {}
 	
 	virtual llvm::Value * accept(Generator * generator);
 };
@@ -292,9 +317,20 @@ struct Float : Expression
 
 struct Array : Expression
 {
-	std::vector<std::shared_ptr<Expression>> values;
+	std::vector<std::shared_ptr<Expression>> elements;
 
-	Array(std::vector<std::shared_ptr<Expression>> values) : values(values) {}
+	Array(std::vector<std::shared_ptr<Expression>> elements) : elements(elements) {}
+	
+	virtual llvm::Value * accept(Generator * generator);
+};
+
+struct ArrayIndex : Expression
+{
+	std::string name;
+	std::shared_ptr<Expression> expression;
+
+	ArrayIndex(std::string name, std::shared_ptr<Expression> expression) : 
+		name(name), expression(expression) {}
 
 	virtual llvm::Value * accept(Generator * generator);
 };

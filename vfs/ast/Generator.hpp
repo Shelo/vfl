@@ -17,8 +17,6 @@ private:
 	
 	llvm::Function * lastFunction;
 	
-	llvm::BasicBlock * lastBlock;
-	
 	std::vector<Scope> scopes;
 
 public:
@@ -77,4 +75,7 @@ public:
 	llvm::Value * visit(Assignment & node);
 	llvm::Value * visit(If & node);
 	llvm::Value * visit(Print & node);
+	llvm::Value * visit(Array & node);
+	llvm::Value * visit(ArrayIndex & node);
+	llvm::Value * visit(ArrayAssignment & node);
 };
