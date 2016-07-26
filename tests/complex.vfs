@@ -1,30 +1,30 @@
 // This isn't implemented yet.
 
-Date
+#Date
     int day
     int month
     int year = 2016
-@End
+End
 
-@Date(new; int day, int month) : Date
-    var self:Date
+@Date (new; int day, int month) : #Date
+    var self:#Date
 
     self.day = day
     self.month = month
     self.year = year
 
     return self
-@End
+End
 
-@Date(display; Date self)
+@Date (display; #Date self)
     // Since the first parameter is a complex type, and it's named self,
     // we can refer to its values in this way: .someValue, this avoids naming
     // conflicts keeping that OO feel but being very explicit in what's
     // happening.
     print "$.month $.day, $.year"
-@End
+End
 
 @Main ()
     var date = @Date(new; 23, 7)
     @Date(display; date)
-@End
+End

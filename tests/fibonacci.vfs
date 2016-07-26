@@ -4,8 +4,8 @@
 	}
 
 	return @(n - 1) + @(n - 2)
-@End
+End
 
 @Main () : int
 	return @Fibonacci(40)
-@End
+End
