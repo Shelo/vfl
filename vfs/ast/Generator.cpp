@@ -25,20 +25,25 @@ llvm::Value * Generator::visit(Function & node)
 	auto type = llvm::FunctionType::get(node.type->getType(), llvm::makeArrayRef(parameterTypes), false);
 	auto function = llvm::Function::Create(type, llvm::Function::ExternalLinkage, name, module.get());
 	lastFunction = function;
-	
+
 	// create the block for this function.
 	builder.SetInsertPoint(llvm::BasicBlock::Create(*context, "entry", function));
-	
+
 	// create the scope.
 	createScope();
 
 	int i = 0;
 	for (auto & arg : function->args()) {
 		auto parameter = node.parameters[i];
-		arg.setName(parameter->name);
+		arg.setName("param:" + parameter->name);
 
 		auto value = parameter->accept(this);
-		builder.CreateStore(&arg, value);
+
+		if (value != nullptr) {
+			builder.CreateStore(&arg, value);
+		} else {
+			value = &arg;
+		}
 
 		scope().add(parameter->name, value);
 
@@ -58,6 +63,10 @@ llvm::Value * Generator::visit(Function & node)
 
 llvm::Value * Generator::visit(Parameter & parameter)
 {
+	if (parameter.type->isArray()) {
+		return nullptr;
+	}
+
 	return builder.CreateAlloca(parameter.type->getType(), nullptr, parameter.name);
 }
 
@@ -78,28 +87,31 @@ llvm::Value * Generator::visit(VarDecl & node)
 	if (node.expression != nullptr) {
 		initial = node.expression->accept(this);
 	}
-	
+
 	llvm::Value * value;
-	
+
 	llvm::Type * type;
 	if (node.type == nullptr) {
 		if (initial == nullptr) {
 			throw "Variable type inference needs a definition.";
 		}
-		
+
 		type = initial->getType();
 	} else {
 		type = node.type->getType();
 	}
-	
+
 	// NOTE: for some reason, in my version of LLVM, ArrayTyID is 13, but
 	// for an array the id is actually 14.
-	if (type->getTypeID() == 14 && initial != nullptr) {
+	// TODO: HERE, IF THIS AN ARRAY OR STRUCT, WE WILL HAVE TO COPY IT.
+	if ((type->getTypeID() == 14) && initial != nullptr) {
 		initial->setName(node.name);
 		value = initial;
 	} else if (type->getTypeID() == 14) {
-		value = builder.CreateAlloca(type, nullptr, node.name);
-		
+		auto arrayType = reinterpret_cast<ArrayType*>(node.type.get());
+		auto size = arrayType->size->accept(this);
+		auto sizeInteger = builder.CreateLoad(size);
+		value = builder.CreateAlloca(type, sizeInteger, node.name);
 		// TODO: fill the array with default values.
 	} else {
 		value = builder.CreateAlloca(type, nullptr, node.name);
@@ -124,11 +136,9 @@ llvm::Value * Generator::visit(ArrayAssignment & node)
 {
 	auto array = scope().get(node.variable);
 
-	auto zero = llvm::ConstantInt::get(*context, llvm::APInt(64, 0, true));
-
 	auto value = node.expression->accept(this);
 	auto index = node.index->accept(this);
-	auto ptr = llvm::GetElementPtrInst::Create(array, { zero, index }, "", builder.GetInsertBlock());
+	auto ptr = llvm::GetElementPtrInst::CreateInBounds(array, { index }, "", builder.GetInsertBlock());
 
 	return builder.CreateStore(value, ptr);
 }
@@ -162,7 +172,7 @@ llvm::Value * Generator::visit(FunctionCall & node)
 	}
 
 	// TODO: check arg compatibility.
-	
+
 	std::vector<llvm::Value*> values;
 	for (auto i : node.arguments) {
 		values.push_back(i->accept(this));
@@ -178,8 +188,11 @@ llvm::Value * Generator::visit(Return & node)
 	if (node.expression) {
 		returnValue = node.expression->accept(this);
 		
-		if (returnValue->getType()->isVoidTy()) {
+		auto type = returnValue->getType();
+		if (type->isVoidTy()) {
 			returnValue = nullptr;
+		} else if (type->getTypeID() == 14 || type->getTypeID() == 13) {
+			returnValue = builder.CreateLoad(returnValue);
 		}
 	}
 
@@ -194,21 +207,26 @@ llvm::Value * Generator::visit(ExpressionStatement & node)
 llvm::Value * Generator::visit(Identifier & node)
 {
 	auto value = scope().get(node.name);
-	auto typeId = value->getType()->getTypeID();
-	
-	// NOTE: harcoded because there's a mismatch between the ArrayTyID (14) and
-	// the actual Array ID in the version of LLVM installed on my machine.
-	// if this is an aggregate type, return the value as reference.
-	if (typeId == 14) {
-		return value;
+
+	if (llvm::isa<llvm::AllocaInst>(value)) {
+		auto alloc = llvm::dyn_cast<llvm::AllocaInst>(value);
+
+		if (alloc->isArrayAllocation()) {
+			return value;
+		}
 	}
 	
+	auto name = value->getName().str();
+	if (name.find("param:") == 0) {
+		return value;
+	}
+
 	return builder.CreateLoad(value);
 }
 
 llvm::Value * Generator::visit(Integer & node)
 {	
-	return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), node.value, true);
+	return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), node.value, true);
 }
 
 llvm::Value * Generator::visit(Float & node)
@@ -311,8 +329,8 @@ llvm::Value * Generator::visit(Print & node)
 
 	// these are to reference the array, first zero is for offset from the pointer, the second
 	// zero is for offset in the elements.
-	auto ptr = llvm::GetElementPtrInst::Create(formatVar, { zero, zero }, "", builder.GetInsertBlock());
-	
+	auto ptr = llvm::GetElementPtrInst::CreateInBounds(formatVar, { zero, zero }, "", builder.GetInsertBlock());
+
 	std::vector<llvm::Value*> arguments;
 	arguments.push_back(ptr);
 	arguments.push_back(node.expression->accept(this));
@@ -323,16 +341,14 @@ llvm::Value * Generator::visit(Print & node)
 llvm::Value * Generator::visit(Array & node)
 {
 	auto first = node.elements[0]->accept(this);
-	auto type = llvm::ArrayType::get(first->getType(), node.elements.size());
-	auto array = builder.CreateAlloca(type);
-	
-	auto zero = llvm::ConstantInt::get(*context, llvm::APInt(64, 0, true));
+	auto size = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), node.elements.size(), true);
+	auto array = builder.CreateAlloca(first->getType(), size);
 
 	uint i = 0;
 	for (auto e : node.elements) {
 		auto value = e->accept(this);
-		auto index = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), i, true);
-		auto ptr = llvm::GetElementPtrInst::Create(array, { zero, index }, "", builder.GetInsertBlock());
+		auto index = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), i, true);
+		auto ptr = llvm::GetElementPtrInst::CreateInBounds(array, { index }, "", builder.GetInsertBlock());
 		builder.CreateStore(value, ptr);
 		i++;
 	}
@@ -343,12 +359,9 @@ llvm::Value * Generator::visit(Array & node)
 llvm::Value * Generator::visit(ArrayIndex & node)
 {
 	auto array = scope().get(node.name);
-	
-	auto zero = llvm::ConstantInt::get(*context, llvm::APInt(64, 0, true));
-	auto index = node.expression->accept(this);
-	auto ptr = llvm::GetElementPtrInst::Create(array, { zero, index }, "", builder.GetInsertBlock());
 
-	auto value = builder.CreateLoad(ptr);
-	
-	return value;
+	auto index = node.expression->accept(this);
+	auto ptr = llvm::GetElementPtrInst::CreateInBounds(array, { index }, "", builder.GetInsertBlock());
+
+	return builder.CreateLoad(ptr);
 }

@@ -1,11 +1,13 @@
+@Sum (int[] array, int i, int size) : int
+	if i == size {
+		return 0
+	}
+
+	return array[i] + @Sum(array, i + 1, size)
+End
 
 
 @Main ()
-	var array:int[5]
-	array[3] = 100
-	var array2 = array
-	array[3] = 200
-	
-	print array[3]
-	print array2[3]
+	var array = [1, 1, 1, 1, 1, 1]
+	print @Sum(array, 0, 6)
 End

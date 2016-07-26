@@ -54,7 +54,7 @@ struct Type
 	virtual llvm::Type * getType()
 	{
 		if (name == "int") {
-			return llvm::Type::getInt64Ty(llvm::getGlobalContext());
+			return llvm::Type::getInt32Ty(llvm::getGlobalContext());
 		}
 
 		if (name == "float") {
@@ -80,24 +80,6 @@ struct Type
 	virtual bool isArray()
 	{
 		return false;
-	}
-};
-
-struct ArrayType : Type
-{
-	int size;
-	
-	ArrayType(std::string name, int size) : Type(name), size(size) {}
-
-	virtual llvm::Type * getType()
-	{
-		auto type = Type::getType();
-		return llvm::ArrayType::get(type, size);
-	}
-
-	virtual bool isArray()
-	{
-		return true;
 	}
 };
 
@@ -313,6 +295,31 @@ struct Float : Expression
 	Float(float value) : value(value) {}
 	
 	virtual llvm::Value * accept(Generator * generator);
+};
+
+struct ArrayType : Type
+{
+	std::shared_ptr<Expression> size;
+	bool isParameter = false;
+
+	ArrayType(std::string name, std::shared_ptr<Expression> size) : Type(name), size(size) {}
+	ArrayType(std::string name) : ArrayType(name, std::make_shared<Integer>(1)) {}
+	
+	virtual llvm::Type * getType()
+	{
+		auto type = Type::getType();
+
+		if (isParameter) {
+			return llvm::PointerType::getUnqual(type);
+		}
+
+		return type;
+	}
+
+	virtual bool isArray()
+	{
+		return true;
+	}
 };
 
 struct Array : Expression

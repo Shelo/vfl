@@ -48,7 +48,7 @@
 %type <function> function
 %type <parameterList> parameterList
 %type <block> block
-%type <type> typeName
+%type <type> typeName parameterName
 %type <statement> statement assignment return variableDeclaration if print
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
@@ -97,11 +97,11 @@ parameterList:
 	{
 		$$ = new std::vector<std::shared_ptr<Parameter>>();
 	}
-	| parameterList ',' typeName IDENTIFIER
+	| parameterList ',' parameterName IDENTIFIER
 	{
 		$1->push_back(std::make_shared<Parameter>(*$4, std::shared_ptr<Type>($3)));
 	}
-	| typeName IDENTIFIER
+	| parameterName IDENTIFIER
 	{
 		$$ = new std::vector<std::shared_ptr<Parameter>>();
 		$$->push_back(std::make_shared<Parameter>(*$2, std::shared_ptr<Type>($1)));
@@ -128,9 +128,19 @@ typeName:
 	{
 		$$ = new Type(*$1);
 	}
-	| IDENTIFIER '[' INTEGER ']'
+	| IDENTIFIER '[' expression ']'
 	{
-		$$ = new ArrayType(*$1, $3);
+		$$ = new ArrayType(*$1, std::shared_ptr<Expression>($3));
+	}
+	;
+
+parameterName:
+	typeName
+	| IDENTIFIER '[' ']'
+	{
+		auto arrayType = new ArrayType(*$1);
+		arrayType->isParameter = true;
+		$$ = arrayType;
 	}
 	;
 
