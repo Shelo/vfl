@@ -95,3 +95,8 @@ llvm::Value * ArrayAssignment::accept(Generator * generator)
 {
 	return generator->visit(*this);
 }
+
+llvm::Value * For::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}

@@ -18,7 +18,7 @@ public:
 		
 		table[name] = value;
 	}
-	
+
 	llvm::Value * get(std::string name)
 	{
 		auto it = table.find(name);

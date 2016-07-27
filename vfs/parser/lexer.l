@@ -21,6 +21,7 @@ var                    	TOKEN(VAR);
 return                 	TOKEN(RETURN);
 if                     	TOKEN(IF);
 else                   	TOKEN(ELSE);
+for						TOKEN(FOR);
 End                   	TOKEN(END);
 @[A-Z][a-zA-Z0-9]*    	yylval.string = new std::string(yytext + 1, yyleng - 1); TOKEN(FUNCTION_NAME);
 [a-z][a-zA-Z0-9]*      	yylval.string = new std::string(yytext, yyleng); TOKEN(IDENTIFIER);

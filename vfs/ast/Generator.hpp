@@ -78,4 +78,5 @@ public:
 	llvm::Value * visit(Array & node);
 	llvm::Value * visit(ArrayIndex & node);
 	llvm::Value * visit(ArrayAssignment & node);
+	llvm::Value * visit(For & node);
 };

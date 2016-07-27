@@ -36,7 +36,9 @@
 	float floatNumber;
 }
 
-%token VAR ASSIGN END RETURN IF ELSE PRINT VOID
+%error-verbose
+
+%token VAR ASSIGN END RETURN IF ELSE PRINT VOID FOR
 
 %token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ MOD
 %token <integer> INTEGER
@@ -49,7 +51,7 @@
 %type <parameterList> parameterList
 %type <block> block
 %type <type> typeName parameterName
-%type <statement> statement assignment return variableDeclaration if print
+%type <statement> statement assignment return variableDeclaration if print for
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
 
@@ -165,6 +167,7 @@ statement:
 	| variableDeclaration
 	| if
 	| print
+	| for
 	;
 
 assignment:
@@ -320,4 +323,16 @@ print:
 		$$ = new Print(std::shared_ptr<Expression>($2));
 	}
 	;
-	
+
+for:
+	FOR IDENTIFIER ASSIGN expression ',' expression '{' block '}'
+	{
+		$$ = new For(*$2, std::shared_ptr<Expression>($4), std::shared_ptr<Expression>($6),
+				std::shared_ptr<Block>($8));
+	}
+	| FOR IDENTIFIER ASSIGN expression ',' expression ',' expression '{' block '}'
+	{
+		$$ = new For(*$2, std::shared_ptr<Expression>($4), std::shared_ptr<Expression>($6),
+				std::shared_ptr<Block>($10), std::shared_ptr<Expression>($8));
+	}
+	;

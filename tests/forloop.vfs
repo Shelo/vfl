@@ -1,5 +1,5 @@
 @Main ()
-	for i = 0, i < 2 {
+	for i = 0, i < 10 {
 		print i
 	}
 End

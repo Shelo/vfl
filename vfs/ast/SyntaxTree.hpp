@@ -341,3 +341,22 @@ struct ArrayIndex : Expression
 
 	virtual llvm::Value * accept(Generator * generator);
 };
+
+struct For : Statement
+{
+	std::string variable;
+	std::shared_ptr<Expression> initial;
+	std::shared_ptr<Expression> condition;
+	std::shared_ptr<Expression> increment;
+	std::shared_ptr<Block> block;
+
+	For(std::string variable, std::shared_ptr<Expression> initial, std::shared_ptr<Expression> condition,
+			std::shared_ptr<Block> block, std::shared_ptr<Expression> increment) :
+		variable(variable), initial(initial), condition(condition), increment(increment), block(block) {}
+
+	For(std::string variable, std::shared_ptr<Expression> initial, std::shared_ptr<Expression> condition,
+			std::shared_ptr<Block> block) :
+		For(variable, initial, condition, block, std::make_shared<Integer>(1)) {}
+	
+	virtual llvm::Value * accept(Generator * generator);
+};

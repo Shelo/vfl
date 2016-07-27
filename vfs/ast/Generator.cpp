@@ -73,10 +73,11 @@ llvm::Value * Generator::visit(Parameter & parameter)
 llvm::Value * Generator::visit(Block & node)
 {
 	llvm::Value * last = nullptr;
+
 	for (auto i : node.statements) {
-		last = i->accept(this);
+		i->accept(this);
 	}
-	
+
 	return last;
 }
 
@@ -88,9 +89,9 @@ llvm::Value * Generator::visit(VarDecl & node)
 		initial = node.expression->accept(this);
 	}
 
-	llvm::Value * value;
-
-	llvm::Type * type;
+	llvm::Value * value = nullptr;
+	
+	llvm::Type * type = nullptr;
 	if (node.type == nullptr) {
 		if (initial == nullptr) {
 			throw "Variable type inference needs a definition.";
@@ -120,8 +121,8 @@ llvm::Value * Generator::visit(VarDecl & node)
 			builder.CreateStore(initial, value);
 		}
 	}
-
-	scope().add(node.name, value);	
+	
+	scope().add(node.name, value);
 
 	return value;
 }
@@ -336,6 +337,39 @@ llvm::Value * Generator::visit(Print & node)
 	arguments.push_back(node.expression->accept(this));
 
 	return builder.CreateCall(print, arguments);
+}
+
+llvm::Value * Generator::visit(For & node)
+{
+	VarDecl initial(node.variable, nullptr, node.initial);
+	auto counter = initial.accept(this);
+	
+	// create the block.
+	auto function = builder.GetInsertBlock()->getParent();
+	auto block = llvm::BasicBlock::Create(*context, "forloop", function);
+	auto after = llvm::BasicBlock::Create(*context, "forcont");
+	auto condition = node.condition->accept(this);
+
+	// fall to the block.
+	builder.CreateCondBr(condition, block, after);
+	
+	builder.SetInsertPoint(block);
+	node.block->accept(this);
+	
+	// increment the counter.
+	auto variable = builder.CreateLoad(counter);
+	auto result = builder.CreateAdd(variable, node.increment->accept(this), "counter");
+	builder.CreateStore(result, counter);
+
+	// execute again or stop.
+	condition = node.condition->accept(this);
+	builder.CreateCondBr(condition, block, after);
+	
+	// insert the after block.
+	function->getBasicBlockList().push_back(after);
+	builder.SetInsertPoint(after);
+
+	return nullptr;
 }
 
 llvm::Value * Generator::visit(Array & node)
