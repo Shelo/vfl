@@ -304,7 +304,7 @@ struct ArrayType : Type
 
 	ArrayType(std::string name, std::shared_ptr<Expression> size) : Type(name), size(size) {}
 	ArrayType(std::string name) : ArrayType(name, std::make_shared<Integer>(1)) {}
-	
+
 	virtual llvm::Type * getType()
 	{
 		auto type = Type::getType();
