@@ -352,10 +352,10 @@ llvm::Value * Generator::visit(For & node)
 
 	// fall to the block.
 	builder.CreateCondBr(condition, block, after);
-	
+
 	builder.SetInsertPoint(block);
 	node.block->accept(this);
-	
+
 	// increment the counter.
 	auto variable = builder.CreateLoad(counter);
 	auto result = builder.CreateAdd(variable, node.increment->accept(this), "counter");

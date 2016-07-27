@@ -1,5 +1,7 @@
 @Main ()
-	for i = 0, i < 2 {
-		print i
+	var array = [10, 2, 30, 4]
+
+	for i = 0, i < 4 {
+		print array[i]
 	}
 End
