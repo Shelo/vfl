@@ -91,6 +91,8 @@ llvm::Value * Generator::visit(VarDecl & node)
 
 	llvm::Value * value = nullptr;
 	
+	bool isArray = false;
+	
 	llvm::Type * type = nullptr;
 	if (node.type == nullptr) {
 		if (initial == nullptr) {
@@ -100,6 +102,7 @@ llvm::Value * Generator::visit(VarDecl & node)
 		type = initial->getType();
 	} else {
 		type = node.type->getType();
+		isArray = node.type->isArray();
 	}
 
 	// NOTE: for some reason, in my version of LLVM, ArrayTyID is 13, but
@@ -108,11 +111,10 @@ llvm::Value * Generator::visit(VarDecl & node)
 	if ((type->getTypeID() == 14) && initial != nullptr) {
 		initial->setName(node.name);
 		value = initial;
-	} else if (type->getTypeID() == 14) {
+	} else if (type->getTypeID() == 14 || isArray) {
 		auto arrayType = reinterpret_cast<ArrayType*>(node.type.get());
 		auto size = arrayType->size->accept(this);
-		auto sizeInteger = builder.CreateLoad(size);
-		value = builder.CreateAlloca(type, sizeInteger, node.name);
+		value = builder.CreateAlloca(type, size, node.name);
 		// TODO: fill the array with default values.
 	} else {
 		value = builder.CreateAlloca(type, nullptr, node.name);
@@ -208,7 +210,7 @@ llvm::Value * Generator::visit(ExpressionStatement & node)
 llvm::Value * Generator::visit(Identifier & node)
 {
 	auto value = scope().get(node.name);
-
+	
 	if (llvm::isa<llvm::AllocaInst>(value)) {
 		auto alloc = llvm::dyn_cast<llvm::AllocaInst>(value);
 
@@ -221,7 +223,7 @@ llvm::Value * Generator::visit(Identifier & node)
 	if (name.find("param:") == 0) {
 		return value;
 	}
-
+	
 	return builder.CreateLoad(value);
 }
 

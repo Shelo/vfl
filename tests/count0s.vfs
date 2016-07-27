@@ -1,0 +1,22 @@
+@CountZeroes (int[] noise, int size) : int
+    var sum = 0
+
+    for i = 0, i < size {
+        if noise[i] == 0 {
+            sum = sum + 1
+        }
+    }
+
+    return sum
+End
+
+@Main ()
+    var size = 10
+
+    var noise:int[size]
+    noise[3] = 0
+    noise[5] = 0
+    noise[7] = 0
+
+    print @CountZeroes(noise, size)
+End

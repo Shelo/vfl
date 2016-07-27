@@ -1,7 +1,22 @@
-@Main ()
-	var array = [10, 2, 30, 4]
+// this is an example of undefined behavior due to the array not
+// being initialized to a default value.
 
-	for i = 0, i < 4 {
-		print array[i]
+@CountZeroes (int[] noise, int size) : int
+	var sum = 0
+
+	for i = 0, i < size {
+		if noise[i] == 0 {
+			sum = sum + 1
+		}
 	}
+
+	return sum
+End
+
+@Main ()
+	var size = 20
+
+	var noise:int[size]
+
+	print @CountZeroes(noise, size)
 End
