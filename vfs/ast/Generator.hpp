@@ -15,7 +15,7 @@ private:
 	
 	llvm::IRBuilder<> builder;
 	
-	llvm::Function * lastFunction;
+	Function * lastFunction;
 	
 	std::vector<Scope> scopes;
 

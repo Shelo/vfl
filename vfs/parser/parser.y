@@ -15,7 +15,7 @@
 
 	void yyerror(const char *str)
 	{
-		std::cerr << "error: " << str << " at line " << yyline << std::endl;
+        throw std::runtime_error(std::string(str) + " at line " + std::to_string(yyline));
 	}
 %}
 
