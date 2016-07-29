@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 #include "vfs/ast/SyntaxTree.hpp"
 #include "vfs/ast/Generator.hpp"
@@ -11,6 +12,9 @@ std::vector<std::shared_ptr<Function>> program;
 int main(int argc, char *argv[])
 {
 	Generator generator;
+
+    // redirect input.
+    freopen(argv[1], "r", stdin);
 
     try {
         yyparse();
