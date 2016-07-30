@@ -16,6 +16,7 @@
 %%
 
 void 					TOKEN(VOID);
+printf					TOKEN(PRINT_F);
 print					TOKEN(PRINT);
 var                    	TOKEN(VAR);
 return                 	TOKEN(RETURN);

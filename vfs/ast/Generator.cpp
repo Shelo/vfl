@@ -328,6 +328,24 @@ llvm::Value * Generator::visit(Print & node)
     return builder.CreateCall(print, { format, value });
 }
 
+llvm::Value * Generator::visit(PrintFormat & node)
+{
+    auto print = module->getOrInsertFunction("printf",
+            llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(*context),
+                    llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
+                    true)
+    );
+
+    std::vector<llvm::Value*> idx;
+    idx.push_back(node.format->accept(this));
+
+    for (auto e : node.expressions) {
+        idx.push_back(e->accept(this));
+    }
+
+    return builder.CreateCall(print, idx);
+}
+
 llvm::Value * Generator::visit(For & node)
 {
     VarDecl initial(node.variable, nullptr, node.initial);

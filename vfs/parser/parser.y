@@ -38,7 +38,7 @@
 
 %error-verbose
 
-%token VAR ASSIGN END RETURN IF ELSE PRINT VOID FOR TRUE FALSE
+%token VAR ASSIGN END RETURN IF ELSE PRINT VOID FOR TRUE FALSE PRINT_F
 
 %token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ MOD
 %token <integer> INTEGER
@@ -51,7 +51,7 @@
 %type <parameterList> parameterList
 %type <block> block
 %type <type> typeName parameterName
-%type <statement> statement assignment return variableDeclaration if print for
+%type <statement> statement assignment return variableDeclaration if print for printf
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
 
@@ -168,6 +168,7 @@ statement:
 	| if
 	| print
 	| for
+	| printf
 	;
 
 assignment:
@@ -331,6 +332,13 @@ print:
 		$$ = new Print(std::shared_ptr<Expression>($2));
 	}
 	;
+
+printf:
+    PRINT_F '(' STRING ',' expressionList ')'
+    {
+        $$ = new PrintFormat(std::make_shared<String>(*$3), *$5);
+    }
+    ;
 
 for:
 	FOR IDENTIFIER ASSIGN expression ',' expression '{' block '}'
