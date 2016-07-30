@@ -85,6 +85,7 @@ llvm::Value * Generator::visit(VarDecl & node)
     bool hasDefinedType = node.type != nullptr;
 
     llvm::Type * type = nullptr;
+
     if (node.type == nullptr) {
         if (initial == nullptr) {
             throw std::runtime_error("Variable type inference needs a definition.");
@@ -95,16 +96,18 @@ llvm::Value * Generator::visit(VarDecl & node)
         type = node.type->getType();
     }
 
-    llvm::Value * arraySize = nullptr;
-
     if (node.type && node.type->isArray()) {
+        // if this is an array, we should allocate it and then fake it as an initial value.
         auto arrayType = reinterpret_cast<ArrayType*>(node.type.get());
-        arraySize = arrayType->size->accept(this);
-        value = builder.CreateAlloca(type, arraySize);
-        value = builder.CreateAlloca(value->getType(), nullptr, node.name);
-    } else {
-        value = builder.CreateAlloca(type, arraySize, node.name);
+        auto arraySize = arrayType->size->accept(this);
+        initial = builder.CreateAlloca(type, arraySize);
+        type = initial->getType();
+
+        // this flag has to be disabled, since arrays cannot be casted.
+        hasDefinedType = false;
     }
+
+    value = builder.CreateAlloca(type, nullptr, node.name);
 
     if (initial != nullptr) {
         if (hasDefinedType) {
@@ -128,9 +131,10 @@ llvm::Value * Generator::visit(ArrayAssignment & node)
 {
     auto array = scope().get(node.variable);
 
+    auto arrayLoad = builder.CreateLoad(array);
     auto value = node.expression->accept(this);
     auto index = node.index->accept(this);
-    auto ptr = llvm::GetElementPtrInst::CreateInBounds(array, {index}, "", builder.GetInsertBlock());
+    auto ptr = builder.CreateInBoundsGEP(arrayLoad, { index });
 
     return builder.CreateStore(value, ptr);
 }

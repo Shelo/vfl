@@ -1,4 +1,5 @@
 @Main ()
-    var a = [1, 2, 3]
+    var a:int[5]
+    a[0] = 5
     print a[0]
 End
