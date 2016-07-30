@@ -38,7 +38,7 @@
 
 %error-verbose
 
-%token VAR ASSIGN END RETURN IF ELSE PRINT VOID FOR
+%token VAR ASSIGN END RETURN IF ELSE PRINT VOID FOR TRUE FALSE
 
 %token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ MOD
 %token <integer> INTEGER
@@ -255,6 +255,14 @@ expression:
 	| '[' expressionList ']'
 	{
 		$$ = new Array(*$2);
+	}
+	| TRUE
+	{
+	    $$ = new Bool(true);
+	}
+	| FALSE
+	{
+	    $$ = new Bool(false);
 	}
 	;
 

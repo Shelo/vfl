@@ -319,6 +319,16 @@ struct Integer : Expression
 	virtual llvm::Value * accept(Generator * generator);
 };
 
+struct Bool : Expression
+{
+	int boolean;
+
+	Bool(int boolean) : boolean(boolean) {}
+	virtual ~Bool() = default;
+
+	virtual llvm::Value * accept(Generator * generator);
+};
+
 struct Float : Expression
 {
 	float value;

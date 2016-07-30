@@ -100,3 +100,8 @@ llvm::Value * For::accept(Generator * generator)
 {
 	return generator->visit(*this);
 }
+
+llvm::Value * Bool::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}
