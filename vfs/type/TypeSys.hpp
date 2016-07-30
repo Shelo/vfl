@@ -14,8 +14,6 @@ private:
 
     std::map<std::pair<llvm::Type*, std::string>, llvm::Instruction::BinaryOps> mathOpTab;
 
-    std::map<std::pair<llvm::Type*, std::string>, llvm::CmpInst::Predicate> cmpOpTab;
-
     llvm::Type * floatTy = llvm::Type::getFloatTy(llvm::getGlobalContext());
     llvm::Type * intTy = llvm::Type::getInt32Ty(llvm::getGlobalContext());
     llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());

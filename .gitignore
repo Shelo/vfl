@@ -1,7 +1,8 @@
 .DS_Store
 .idea/
-vfs/gen/*
-build/*
 tests/*
 !tests/*.vfs
 ignore/
+build/*
+vfs/gen/*
+!**/.gitkeep
