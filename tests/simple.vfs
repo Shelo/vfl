@@ -1,4 +1,4 @@
 @Main ()
-    var a = 1
-    print a
+    var a = [1, 2, 3]
+    print a[0]
 End

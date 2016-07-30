@@ -38,12 +38,7 @@ llvm::Value * Generator::visit(Function & node)
         arg.setName("param." + parameter->name);
 
         auto value = parameter->accept(this);
-
-        if (value != nullptr) {
-            builder.CreateStore(&arg, value);
-        } else {
-            value = &arg;
-        }
+        builder.CreateStore(&arg, value);
 
         scope().add(parameter->name, value);
 
@@ -63,10 +58,6 @@ llvm::Value * Generator::visit(Function & node)
 
 llvm::Value * Generator::visit(Parameter & parameter)
 {
-    if (parameter.type->isArray()) {
-        return nullptr;
-    }
-
     return builder.CreateAlloca(parameter.type->getType(), nullptr, parameter.name);
 }
 
@@ -91,7 +82,6 @@ llvm::Value * Generator::visit(VarDecl & node)
 
     llvm::Value * value = nullptr;
 
-    bool isArray = false;
     bool hasDefinedType = node.type != nullptr;
 
     llvm::Type * type = nullptr;
@@ -103,30 +93,25 @@ llvm::Value * Generator::visit(VarDecl & node)
         type = initial->getType();
     } else {
         type = node.type->getType();
-        isArray = node.type->isArray();
     }
 
-    // NOTE: for some reason, in my version of LLVM, ArrayTyID is 13, but
-    // for an array the id is actually 14.
-    // TODO: HERE, IF THIS AN ARRAY OR STRUCT, WE WILL HAVE TO COPY IT.
-    if ((type->getTypeID() == 14) && initial != nullptr) {
-        initial->setName(node.name);
-        value = initial;
-    } else if (type->getTypeID() == 14 || isArray) {
-        auto arrayType = reinterpret_cast<ArrayType *>(node.type.get());
-        auto size = arrayType->size->accept(this);
-        value = builder.CreateAlloca(type, size, node.name);
-        // TODO: fill the array with default values.
+    llvm::Value * arraySize = nullptr;
+
+    if (node.type && node.type->isArray()) {
+        auto arrayType = reinterpret_cast<ArrayType*>(node.type.get());
+        arraySize = arrayType->size->accept(this);
+        value = builder.CreateAlloca(type, arraySize);
+        value = builder.CreateAlloca(value->getType(), nullptr, node.name);
     } else {
-        value = builder.CreateAlloca(type, nullptr, node.name);
+        value = builder.CreateAlloca(type, arraySize, node.name);
+    }
 
-        if (initial != nullptr) {
-            if (hasDefinedType) {
-                initial = typeSys.cast(initial, node.type->getType(), builder.GetInsertBlock());
-            }
-
-            builder.CreateStore(initial, value);
+    if (initial != nullptr) {
+        if (hasDefinedType) {
+            initial = typeSys.cast(initial, node.type->getType(), builder.GetInsertBlock());
         }
+
+        builder.CreateStore(initial, value);
     }
 
     scope().add(node.name, value);
@@ -217,19 +202,6 @@ llvm::Value * Generator::visit(Identifier & node)
 
     if (value == nullptr) {
         throw std::runtime_error("Symbol not defined: " + node.name);
-    }
-
-    if (llvm::isa<llvm::AllocaInst>(value)) {
-        auto alloc = llvm::dyn_cast<llvm::AllocaInst>(value);
-
-        if (alloc->isArrayAllocation()) {
-            return value;
-        }
-    }
-
-    auto name = value->getName().str();
-    if (name.find("param.") == 0) {
-        return value;
     }
 
     return builder.CreateLoad(value);
@@ -408,7 +380,8 @@ llvm::Value * Generator::visit(ArrayIndex & node)
     auto array = scope().get(node.name);
 
     auto index = node.expression->accept(this);
-    auto ptr = llvm::GetElementPtrInst::CreateInBounds(array, {index}, "", builder.GetInsertBlock());
+    auto loadedArray = builder.CreateLoad(array);
+    auto ptr = llvm::GetElementPtrInst::CreateInBounds(loadedArray, {index}, "", builder.GetInsertBlock());
 
     return builder.CreateLoad(ptr);
 }
