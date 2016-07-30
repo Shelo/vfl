@@ -64,6 +64,10 @@ struct Type
 			return llvm::Type::getFloatTy(llvm::getGlobalContext());
 		}
 
+		if (name == "string") {
+            return llvm::Type::getInt8PtrTy(llvm::getGlobalContext());
+		}
+
 		return llvm::Type::getVoidTy(llvm::getGlobalContext());
 	}
 

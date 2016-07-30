@@ -1,5 +1,9 @@
+@Take (string a)
+    print a
+End
+
+
 @Main ()
-    var a:int[5]
-    a[0] = 5
-    print a[0]
+    var a = "Hello, world"
+    @Take(a)
 End

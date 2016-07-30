@@ -225,10 +225,12 @@ llvm::Value * Generator::visit(String & node)
 {
     auto constString = llvm::ConstantDataArray::getString(*context, node.value);
     auto var = new llvm::GlobalVariable(*module,
-            llvm::ArrayType::get(llvm::IntegerType::get(*context, 8), 4),
+            llvm::ArrayType::get(llvm::IntegerType::get(*context, 8), node.value.length() + 1),
             true, llvm::GlobalValue::PrivateLinkage, constString, ".str");
 
-    return var;
+    auto zero = llvm::Constant::getNullValue(typeSys.intTy);
+
+    return builder.CreateInBoundsGEP(var, { zero, zero });
 }
 
 llvm::Value * Generator::visit(BinaryOp & node)
@@ -296,36 +298,34 @@ llvm::Value * Generator::visit(If & node)
 
 llvm::Value * Generator::visit(Print & node)
 {
+    // take the value we want to print.
+    auto value = node.expression->accept(this);
+
     auto print = module->getOrInsertFunction("printf",
             llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(*context),
                     llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
                     true)
     );
 
-    auto format = llvm::ConstantDataArray::getString(*context, "%g\n");
-    auto formatVar = new llvm::GlobalVariable(
-            *module, llvm::ArrayType::get(llvm::IntegerType::get(*context, 8), 4),
-            true, llvm::GlobalValue::PrivateLinkage, format, ".str");
+    // create the format type accordingly.
+    std::string fType;
 
-    auto zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(*context));
-
-    // these are to reference the array, first zero is for offset from the pointer, the second
-    // zero is for offset in the elements.
-    auto ptr = builder.CreateInBoundsGEP(formatVar, {zero, zero});
-
-    // take the value and cast to a double.
-    auto value = node.expression->accept(this);
-
-    if (value->getType()->isIntegerTy() || value->getType()->isFloatingPointTy()) {
-        value = typeSys.cast(value, llvm::Type::getDoubleTy(llvm::getGlobalContext()),
-                builder.GetInsertBlock());
+    if (value->getType()->isIntegerTy()) {
+        fType = "%d";
+    } else if (value->getType()->isFloatingPointTy()) {
+        fType = "%g";
+    } else if (value->getType()->isPointerTy()) {
+        fType = "%s";
     }
 
-    std::vector<llvm::Value *> arguments;
-    arguments.push_back(ptr);
-    arguments.push_back(value);
+    auto format = String(fType + "\n").accept(this);
 
-    return builder.CreateCall(print, arguments);
+    // if this is a floating pointer, make sure it's a double, since printf needs doubles.
+    if (value->getType()->isFloatingPointTy()) {
+        value = typeSys.cast(value, typeSys.doubleTy, builder.GetInsertBlock());
+    }
+
+    return builder.CreateCall(print, { format, value });
 }
 
 llvm::Value * Generator::visit(For & node)

@@ -14,11 +14,6 @@ private:
 
     std::map<std::pair<llvm::Type*, std::string>, llvm::Instruction::BinaryOps> mathOpTab;
 
-    llvm::Type * floatTy = llvm::Type::getFloatTy(llvm::getGlobalContext());
-    llvm::Type * intTy = llvm::Type::getInt32Ty(llvm::getGlobalContext());
-    llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());
-    llvm::Type * boolTy = llvm::Type::getInt1Ty(llvm::getGlobalContext());
-
     void addCoercion(llvm::Type *l, llvm::Type *r, llvm::Type *result);
 
     void addCast(llvm::Type * from, llvm::Type * to, llvm::CastInst::CastOps op);
@@ -28,6 +23,11 @@ private:
     llvm::CastInst::CastOps getCastOp(llvm::Type * from, llvm::Type * to);
 
 public:
+    llvm::Type * floatTy = llvm::Type::getFloatTy(llvm::getGlobalContext());
+    llvm::Type * intTy = llvm::Type::getInt32Ty(llvm::getGlobalContext());
+    llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());
+    llvm::Type * boolTy = llvm::Type::getInt1Ty(llvm::getGlobalContext());
+
     TypeSys();
 
     /**
