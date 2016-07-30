@@ -4,10 +4,11 @@
 
 TypeSys::TypeSys()
 {
-    add(intTy, floatTy, floatTy);
+    addCoercion(intTy, floatTy, floatTy);
 
     addCast(intTy, floatTy, llvm::CastInst::SIToFP);
     addCast(intTy, doubleTy, llvm::CastInst::SIToFP);
+    addCast(boolTy, doubleTy, llvm::CastInst::SIToFP);
     addCast(floatTy, doubleTy, llvm::CastInst::FPExt);
 
     addOp(intTy, "+", llvm::Instruction::Add);
@@ -26,7 +27,7 @@ TypeSys::TypeSys()
     addOp(floatTy, "%", llvm::Instruction::FRem);
 }
 
-void TypeSys::add(llvm::Type * l, llvm::Type * r, llvm::Type * result)
+void TypeSys::addCoercion(llvm::Type *l, llvm::Type *r, llvm::Type *result)
 {
     if (coerceTab.find(l) == coerceTab.end()) {
         coerceTab[l] = std::map<llvm::Type*, llvm::Type*>();
@@ -46,7 +47,7 @@ void TypeSys::addCast(llvm::Type * from, llvm::Type * to, llvm::CastInst::CastOp
 
 void TypeSys::addOp(llvm::Type * type, std::string op, llvm::Instruction::BinaryOps llvmOp)
 {
-    opTab[std::pair<llvm::Type*, std::string>(type, op)] = llvmOp;
+    mathOpTab[std::pair<llvm::Type*, std::string>(type, op)] = llvmOp;
 }
 
 llvm::CastInst::CastOps TypeSys::getCastOp(llvm::Type * from, llvm::Type * to)
@@ -106,5 +107,46 @@ llvm::Value * TypeSys::cast(llvm::Value * value, llvm::Type * type, llvm::BasicB
 
 llvm::Instruction::BinaryOps TypeSys::getMathOp(llvm::Type *type, std::string op)
 {
-    return opTab[std::pair<llvm::Type*, std::string>(type, op)];
+    return mathOpTab[std::pair<llvm::Type*, std::string>(type, op)];
 }
+
+bool TypeSys::isFP(llvm::Type * type)
+{
+    return type != intTy;
+}
+
+llvm::CmpInst::Predicate TypeSys::getCmpPredicate(llvm::Type * type, std::string op)
+{
+    if (type == intTy) {
+        if (op == "==") {
+            return llvm::CmpInst::Predicate::ICMP_EQ;
+        } else if (op == "!=") {
+            return llvm::CmpInst::Predicate::ICMP_NE;
+        } else if (op == "<") {
+            return llvm::CmpInst::Predicate::ICMP_SLT;
+        } else if (op == ">") {
+            return llvm::CmpInst::Predicate::ICMP_SGT;
+        } else if (op == "<=") {
+            return llvm::CmpInst::Predicate::ICMP_SLE;
+        } else if (op == ">=") {
+            return llvm::CmpInst::Predicate::ICMP_SGE;
+        }
+    } else {
+        if (op == "==") {
+            return llvm::CmpInst::Predicate::FCMP_OEQ;
+        } else if (op == "!=") {
+            return llvm::CmpInst::Predicate::FCMP_ONE;
+        } else if (op == "<") {
+            return llvm::CmpInst::Predicate::FCMP_OLT;
+        } else if (op == ">") {
+            return llvm::CmpInst::Predicate::FCMP_OGT;
+        } else if (op == "<=") {
+            return llvm::CmpInst::Predicate::FCMP_OLE;
+        } else if (op == ">=") {
+            return llvm::CmpInst::Predicate::FCMP_OGE;
+        }
+    }
+
+    throw std::runtime_error("Not a compare operator: " + op);
+}
+

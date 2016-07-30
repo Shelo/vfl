@@ -9,15 +9,22 @@ class TypeSys
 {
 private:
     std::map<llvm::Type*, std::map<llvm::Type*, llvm::Type*>> coerceTab;
+
     std::map<llvm::Type*, std::map<llvm::Type*, llvm::CastInst::CastOps>> castTab;
-    std::map<std::pair<llvm::Type*, std::string>, llvm::Instruction::BinaryOps> opTab;
+
+    std::map<std::pair<llvm::Type*, std::string>, llvm::Instruction::BinaryOps> mathOpTab;
+
+    std::map<std::pair<llvm::Type*, std::string>, llvm::CmpInst::Predicate> cmpOpTab;
 
     llvm::Type * floatTy = llvm::Type::getFloatTy(llvm::getGlobalContext());
     llvm::Type * intTy = llvm::Type::getInt32Ty(llvm::getGlobalContext());
     llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());
+    llvm::Type * boolTy = llvm::Type::getInt1Ty(llvm::getGlobalContext());
 
-    void add(llvm::Type * l, llvm::Type * r, llvm::Type * result);
+    void addCoercion(llvm::Type *l, llvm::Type *r, llvm::Type *result);
+
     void addCast(llvm::Type * from, llvm::Type * to, llvm::CastInst::CastOps op);
+
     void addOp(llvm::Type * type, std::string op, llvm::Instruction::BinaryOps llvmOp);
 
     llvm::CastInst::CastOps getCastOp(llvm::Type * from, llvm::Type * to);
@@ -54,6 +61,13 @@ public:
      * @return the LLVM math operator.
      */
     llvm::Instruction::BinaryOps getMathOp(llvm::Type * type, std::string op);
+
+    /**
+     * @return true if the type is a floating point.
+     */
+    bool isFP(llvm::Type * type);
+
+    llvm::CmpInst::Predicate getCmpPredicate(llvm::Type * type, std::string op);
 };
 
 #endif //VFS_TYPESYS_HPP

@@ -251,28 +251,22 @@ llvm::Value * Generator::visit(BinaryOp & node)
 	auto left = node.left->accept(this);
 	auto right = node.right->accept(this);
 
-	if (node.op == "==") {
-		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, left, right);
-	} else if (node.op == "!=") {
-		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, left, right);
-	} else if (node.op == "<") {
-		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, left, right);
-	} else if (node.op == ">") {
-		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, left, right);
-	} else if (node.op == "<=") {
-		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLE, left, right);
-	} else if (node.op == ">=") {
-		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGE, left, right);
-	}
-
     auto coercion = typeSys.coerce(left->getType(), right->getType());
 
     auto leftCast = typeSys.cast(left, coercion, builder.GetInsertBlock());
     auto rightCast = typeSys.cast(right, coercion, builder.GetInsertBlock());
 
-    auto op = typeSys.getMathOp(coercion, node.op);
-
-	return llvm::BinaryOperator::Create(op, leftCast, rightCast, "", builder.GetInsertBlock());
+    // check if this is a math of a compare operator.
+    if (node.op == "+" || node.op == "-" || node.op == "/" || node.op == "*" || node.op == "%") {
+        return llvm::BinaryOperator::Create(typeSys.getMathOp(coercion, node.op),
+                leftCast, rightCast, "", builder.GetInsertBlock());
+    } else {
+		if (typeSys.isFP(coercion)) {
+			return builder.CreateFCmp(typeSys.getCmpPredicate(coercion, node.op), leftCast, rightCast);
+		} else {
+			return builder.CreateICmp(typeSys.getCmpPredicate(coercion, node.op), leftCast, rightCast);
+		}
+    }
 }
 
 llvm::Value * Generator::visit(If & node)
