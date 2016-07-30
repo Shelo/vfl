@@ -10,21 +10,28 @@ TypeSys::TypeSys()
     addCast(intTy, doubleTy, llvm::CastInst::SIToFP);
     addCast(boolTy, doubleTy, llvm::CastInst::SIToFP);
     addCast(floatTy, doubleTy, llvm::CastInst::FPExt);
+    addCast(floatTy, intTy, llvm::CastInst::FPToSI);
+    addCast(doubleTy, intTy, llvm::CastInst::FPToSI);
 
     addOp(intTy, "+", llvm::Instruction::Add);
     addOp(floatTy, "+", llvm::Instruction::FAdd);
+    addOp(doubleTy, "+", llvm::Instruction::FAdd);
 
     addOp(intTy, "-", llvm::Instruction::Sub);
     addOp(floatTy, "-", llvm::Instruction::FSub);
+    addOp(doubleTy, "-", llvm::Instruction::FSub);
 
     addOp(intTy, "*", llvm::Instruction::Mul);
     addOp(floatTy, "*", llvm::Instruction::FMul);
+    addOp(doubleTy, "*", llvm::Instruction::FMul);
 
     addOp(intTy, "/", llvm::Instruction::SDiv);
     addOp(floatTy, "/", llvm::Instruction::FDiv);
+    addOp(doubleTy, "/", llvm::Instruction::FDiv);
 
     addOp(intTy, "%", llvm::Instruction::SRem);
     addOp(floatTy, "%", llvm::Instruction::FRem);
+    addOp(doubleTy, "%", llvm::Instruction::FRem);
 }
 
 void TypeSys::addCoercion(llvm::Type *l, llvm::Type *r, llvm::Type *result)

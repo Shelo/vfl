@@ -92,6 +92,7 @@ llvm::Value * Generator::visit(VarDecl & node)
 	llvm::Value * value = nullptr;
 
 	bool isArray = false;
+	bool hasDefinedType = node.type != nullptr;
 
 	llvm::Type * type = nullptr;
 	if (node.type == nullptr) {
@@ -120,12 +121,15 @@ llvm::Value * Generator::visit(VarDecl & node)
 		value = builder.CreateAlloca(type, nullptr, node.name);
 
 		if (initial != nullptr) {
+			if (hasDefinedType) {
+				initial = typeSys.cast(initial, node.type->getType(), builder.GetInsertBlock());
+			}
+
 			builder.CreateStore(initial, value);
 		}
 	}
 
 	scope().add(node.name, value);
-
 	return value;
 }
 
@@ -251,8 +255,11 @@ llvm::Value * Generator::visit(BinaryOp & node)
 	auto left = node.left->accept(this);
 	auto right = node.right->accept(this);
 
+	// get the type coercion.
     auto coercion = typeSys.coerce(left->getType(), right->getType());
 
+	// cast the two values to the coerce type (note: if one of them is already of that type,
+	// then no cast is made).
     auto leftCast = typeSys.cast(left, coercion, builder.GetInsertBlock());
     auto rightCast = typeSys.cast(right, coercion, builder.GetInsertBlock());
 
