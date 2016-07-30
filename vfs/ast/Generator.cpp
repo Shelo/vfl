@@ -247,7 +247,12 @@ llvm::Value * Generator::visit(Float & node)
 
 llvm::Value * Generator::visit(String & node)
 {
-    return nullptr;
+    auto constString = llvm::ConstantDataArray::getString(*context, node.value);
+    auto var = new llvm::GlobalVariable(*module,
+            llvm::ArrayType::get(llvm::IntegerType::get(*context, 8), 4),
+            true, llvm::GlobalValue::PrivateLinkage, constString, ".str");
+
+    return var;
 }
 
 llvm::Value * Generator::visit(BinaryOp & node)
@@ -330,11 +335,15 @@ llvm::Value * Generator::visit(Print & node)
 
     // these are to reference the array, first zero is for offset from the pointer, the second
     // zero is for offset in the elements.
-    auto ptr = llvm::GetElementPtrInst::CreateInBounds(formatVar, {zero, zero}, "", builder.GetInsertBlock());
+    auto ptr = builder.CreateInBoundsGEP(formatVar, {zero, zero});
 
     // take the value and cast to a double.
     auto value = node.expression->accept(this);
-    value = typeSys.cast(value, llvm::Type::getDoubleTy(llvm::getGlobalContext()), builder.GetInsertBlock());
+
+    if (value->getType()->isIntegerTy() || value->getType()->isFloatingPointTy()) {
+        value = typeSys.cast(value, llvm::Type::getDoubleTy(llvm::getGlobalContext()),
+                builder.GetInsertBlock());
+    }
 
     std::vector<llvm::Value *> arguments;
     arguments.push_back(ptr);

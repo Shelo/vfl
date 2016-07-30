@@ -1,5 +1,4 @@
 @Main ()
-    if true {
-        print 1
-    }
+    var a = 1
+    print a
 End
