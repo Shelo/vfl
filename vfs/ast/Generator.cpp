@@ -256,7 +256,7 @@ llvm::Value * Generator::visit(BinaryOp & node)
     auto leftCast = typeSys.cast(left, coercion, builder.GetInsertBlock());
     auto rightCast = typeSys.cast(right, coercion, builder.GetInsertBlock());
 
-    // check if this is a math of a compare operator.
+    // check if this is a math of a comparison operator.
     if (node.op == "+" || node.op == "-" || node.op == "/" || node.op == "*" || node.op == "%") {
         return llvm::BinaryOperator::Create(typeSys.getMathOp(coercion, node.op),
                 leftCast, rightCast, "", builder.GetInsertBlock());

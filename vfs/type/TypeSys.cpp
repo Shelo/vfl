@@ -147,6 +147,6 @@ llvm::CmpInst::Predicate TypeSys::getCmpPredicate(llvm::Type * type, std::string
         }
     }
 
-    throw std::runtime_error("Not a compare operator: " + op);
+    throw std::runtime_error("Not a comparison operator: " + op);
 }
 
