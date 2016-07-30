@@ -1,11 +1,3 @@
-@Function(int a) : int
-    return a + 1
-End
-
-@Function(f; int a) : int
-    return @(a)
-End
-
 @Main ()
-    print @Function(f; 1)
+    print 5 / 2
 End

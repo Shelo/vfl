@@ -4,6 +4,7 @@
 
 #include "../context/Scope.hpp"
 #include "SyntaxTree.hpp"
+#include "../type/TypeSys.hpp"
 
 
 class Generator
@@ -18,6 +19,8 @@ private:
 	Function * lastFunction;
 	
 	std::vector<Scope> scopes;
+
+	TypeSys typeSys;
 
 public:
 	Generator() : context(std::shared_ptr<llvm::LLVMContext>(&llvm::getGlobalContext())),

@@ -251,17 +251,7 @@ llvm::Value * Generator::visit(BinaryOp & node)
 	auto left = node.left->accept(this);
 	auto right = node.right->accept(this);
 
-	llvm::Instruction::BinaryOps instruction;
-
-	if (node.op == "+") {
-		instruction = llvm::Instruction::Add;
-	} else if (node.op == "-") {
-		instruction = llvm::Instruction::Sub;
-	} else if (node.op == "*") {
-		instruction = llvm::Instruction::Mul;
-	} else if (node.op == "/") {
-		instruction = llvm::Instruction::SDiv;
-	} else if (node.op == "%") {
+	if (node.op == "%") {
 		return builder.CreateSRem(left, right);
 	} else if (node.op == "==") {
 		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, left, right);
@@ -275,11 +265,16 @@ llvm::Value * Generator::visit(BinaryOp & node)
 		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLE, left, right);
 	} else if (node.op == ">=") {
 		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGE, left, right);
-	} else {
-		throw std::runtime_error("Unknown binary operator: " + node.op);
 	}
 
-	return llvm::BinaryOperator::Create(instruction, left, right, "", builder.GetInsertBlock());
+    auto coercion = typeSys.coerce(left->getType(), right->getType());
+
+    auto leftCast = typeSys.cast(left, coercion, builder.GetInsertBlock());
+    auto rightCast = typeSys.cast(right, coercion, builder.GetInsertBlock());
+
+    auto op = typeSys.getOp(coercion, node.op);
+
+	return llvm::BinaryOperator::Create(op, leftCast, rightCast, "", builder.GetInsertBlock());
 }
 
 llvm::Value * Generator::visit(If & node)
@@ -327,7 +322,7 @@ llvm::Value * Generator::visit(Print & node)
 			true)
 	);
 
-	auto format = llvm::ConstantDataArray::getString(*context, "%d\n");
+	auto format = llvm::ConstantDataArray::getString(*context, "%g\n");
 	auto formatVar = new llvm::GlobalVariable(
 		*module, llvm::ArrayType::get(llvm::IntegerType::get(*context, 8), 4),
 		true, llvm::GlobalValue::PrivateLinkage, format, ".str");
@@ -338,9 +333,13 @@ llvm::Value * Generator::visit(Print & node)
 	// zero is for offset in the elements.
 	auto ptr = llvm::GetElementPtrInst::CreateInBounds(formatVar, { zero, zero }, "", builder.GetInsertBlock());
 
+    // take the value and cast to a double.
+    auto value = node.expression->accept(this);
+    value = typeSys.cast(value, llvm::Type::getDoubleTy(llvm::getGlobalContext()), builder.GetInsertBlock());
+
 	std::vector<llvm::Value*> arguments;
 	arguments.push_back(ptr);
-	arguments.push_back(node.expression->accept(this));
+	arguments.push_back(value);
 
 	return builder.CreateCall(print, arguments);
 }
