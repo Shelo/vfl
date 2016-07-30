@@ -21,6 +21,9 @@ TypeSys::TypeSys()
 
     addOp(intTy, "/", llvm::Instruction::SDiv);
     addOp(floatTy, "/", llvm::Instruction::FDiv);
+
+    addOp(intTy, "%", llvm::Instruction::SRem);
+    addOp(floatTy, "%", llvm::Instruction::FRem);
 }
 
 void TypeSys::add(llvm::Type * l, llvm::Type * r, llvm::Type * result)
@@ -101,7 +104,7 @@ llvm::Value * TypeSys::cast(llvm::Value * value, llvm::Type * type, llvm::BasicB
     return llvm::CastInst::Create(getCastOp(value->getType(), type), value, type, "cast", block);
 }
 
-llvm::Instruction::BinaryOps TypeSys::getOp(llvm::Type * type, std::string op)
+llvm::Instruction::BinaryOps TypeSys::getMathOp(llvm::Type *type, std::string op)
 {
     return opTab[std::pair<llvm::Type*, std::string>(type, op)];
 }

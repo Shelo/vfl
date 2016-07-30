@@ -16,20 +16,44 @@ private:
     llvm::Type * intTy = llvm::Type::getInt32Ty(llvm::getGlobalContext());
     llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());
 
-public:
-    TypeSys();
-
     void add(llvm::Type * l, llvm::Type * r, llvm::Type * result);
     void addCast(llvm::Type * from, llvm::Type * to, llvm::CastInst::CastOps op);
     void addOp(llvm::Type * type, std::string op, llvm::Instruction::BinaryOps llvmOp);
 
+    llvm::CastInst::CastOps getCastOp(llvm::Type * from, llvm::Type * to);
+
+public:
+    TypeSys();
+
+    /**
+     * Takes two types and returns a type that they both can cast to.
+     *
+     * Example usage:
+     * <pre>
+     * coerce(floatTy, intTy); # -> floatTy
+     * </pre>
+     *
+     * @return the coercion type.
+     */
     llvm::Type * coerce(llvm::Type * l, llvm::Type * r);
 
+    /**
+     * Casts one value to a given type.
+     *
+     * This method will throw an exception in case the type cannot be casted.
+     *
+     * @return the casted value, or the value given if it already has the required type.
+     */
     llvm::Value * cast(llvm::Value * value, llvm::Type * type, llvm::BasicBlock * block);
 
-    llvm::Instruction::BinaryOps getOp(llvm::Type *type, std::string op);
-
-    llvm::CastInst::CastOps getCastOp(llvm::Type * from, llvm::Type * to);
+    /**
+     * Returns the math operation for the given type and op.
+     *
+     * @param op    one of: +, -, /, *, %
+     *
+     * @return the LLVM math operator.
+     */
+    llvm::Instruction::BinaryOps getMathOp(llvm::Type * type, std::string op);
 };
 
 #endif //VFS_TYPESYS_HPP

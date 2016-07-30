@@ -251,9 +251,7 @@ llvm::Value * Generator::visit(BinaryOp & node)
 	auto left = node.left->accept(this);
 	auto right = node.right->accept(this);
 
-	if (node.op == "%") {
-		return builder.CreateSRem(left, right);
-	} else if (node.op == "==") {
+	if (node.op == "==") {
 		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, left, right);
 	} else if (node.op == "!=") {
 		return builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, left, right);
@@ -272,7 +270,7 @@ llvm::Value * Generator::visit(BinaryOp & node)
     auto leftCast = typeSys.cast(left, coercion, builder.GetInsertBlock());
     auto rightCast = typeSys.cast(right, coercion, builder.GetInsertBlock());
 
-    auto op = typeSys.getOp(coercion, node.op);
+    auto op = typeSys.getMathOp(coercion, node.op);
 
 	return llvm::BinaryOperator::Create(op, leftCast, rightCast, "", builder.GetInsertBlock());
 }
