@@ -294,7 +294,11 @@ llvm::Value * Generator::visit(If & node)
     }
 
     builder.SetInsertPoint(thenBlock);
+
+    createScope();
     node.thenBlock->accept(this);
+    popScope();
+
     thenBlock = builder.GetInsertBlock();
 
     if (thenBlock->getTerminator() == nullptr) {
@@ -304,7 +308,11 @@ llvm::Value * Generator::visit(If & node)
     if (node.elseBlock) {
         function->getBasicBlockList().push_back(elseBlock);
         builder.SetInsertPoint(elseBlock);
+
+        createScope();
         node.elseBlock->accept(this);
+        popScope();
+
         builder.CreateBr(mergeBlock);
     }
 
@@ -361,7 +369,10 @@ llvm::Value * Generator::visit(For & node)
     builder.CreateCondBr(condition, block, after);
 
     builder.SetInsertPoint(block);
+
+    createScope();
     node.block->accept(this);
+    popScope();
 
     // increment the counter.
     auto variable = builder.CreateLoad(counter);

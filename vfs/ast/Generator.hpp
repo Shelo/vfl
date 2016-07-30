@@ -19,7 +19,7 @@ private:
 	
 	Function * lastFunction;
 	
-	std::vector<Scope> scopes;
+	std::vector<std::shared_ptr<Scope>> scopes;
 
 	TypeSys typeSys;
 
@@ -38,31 +38,23 @@ public:
 	
 	void createScope()
 	{
-		scopes.push_back(Scope());
+		Scope * parent = nullptr;
+
+        if (!scopes.empty()) {
+            parent = scopes.back().get();
+        }
+
+		scopes.push_back(std::make_shared<Scope>(parent));
 	}
 	
 	Scope & scope()
 	{
-		return scopes.back();
+		return *scopes.back();
 	}
-	
+
 	void popScope()
 	{
 		scopes.pop_back();
-	}
-	
-	llvm::Value * getSymbol(std::string name)
-	{
-		llvm::Value * value;
-		for (int i = scopes.size() - 1; i >= 0; i--) {
-			value = scopes[i].get(name);
-			
-			if (value != nullptr) {
-				return value;
-			}
-		}
-		
-		throw "Unknown symbol: " + name;
 	}
 
 	llvm::Value * visit(Block & node);

@@ -1,9 +1,5 @@
-@Take (string a)
-    @Print(format; "%s\n", a)
-End
-
-
 @Main ()
-    var a = "Hello, world"
-    @Take(a)
+    var g = 2
+
+    print g
 End
