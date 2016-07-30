@@ -233,20 +233,6 @@ struct Print : Statement
 	virtual llvm::Value * accept(Generator * generator);
 };
 
-struct String;
-struct PrintFormat : Statement
-{
-    std::shared_ptr<String> format;
-    std::vector<std::shared_ptr<Expression>> expressions;
-
-    PrintFormat(std::shared_ptr<String> format, std::vector<std::shared_ptr<Expression>> expressions) :
-            format(format), expressions(expressions) {}
-
-    virtual ~PrintFormat() = default;
-
-    virtual llvm::Value * accept(Generator * generator);
-};
-
 struct BinaryOp : Expression
 {
 	std::shared_ptr<Expression> left;

@@ -7,6 +7,8 @@
 	#define SAVE_TOKEN(T) { yylval.token = T; return T; }
 	
 	extern size_t lineNumber;
+
+	std::string buffer;
 %}
 
 %option noyywrap
@@ -16,7 +18,6 @@
 %%
 
 void 					TOKEN(VOID);
-printf					TOKEN(PRINT_F);
 print					TOKEN(PRINT);
 var                    	TOKEN(VAR);
 return                 	TOKEN(RETURN);
@@ -29,7 +30,7 @@ false 					TOKEN(FALSE);
 @[A-Z][a-zA-Z0-9]*    	yylval.string = new std::string(yytext + 1, yyleng - 1); TOKEN(FUNCTION_NAME);
 [a-z][a-zA-Z0-9]*      	yylval.string = new std::string(yytext, yyleng); TOKEN(IDENTIFIER);
 [0-9]+\.[0-9]*f        	yylval.floatNumber = std::stof(yytext); TOKEN(FLOAT);
-[0-9]+                 	yylval.integer = std::stoi(yytext); TOKEN(INTEGER);
+[0-9]+                  yylval.integer = std::stoi(yytext); TOKEN(INTEGER);
 ==                     	TOKEN(EQ);
 !=                     	TOKEN(NEQ);
 \<						TOKEN(LESS);
@@ -50,7 +51,9 @@ false 					TOKEN(FALSE);
 
 <S_COMMENT>[^\n]*       BEGIN(INITIAL);
 
-<S_STRING>[^\"]*        yylval.string = new std::string(yytext); TOKEN(STRING);
-<S_STRING>\"            BEGIN(INITIAL);
+<S_STRING>[^\"\\n]*     buffer.append(yytext);
+<S_STRING>\\t           buffer.append("\t");
+<S_STRING>\\n           buffer.append("\n");
+<S_STRING>\"            yylval.string = new std::string(buffer); buffer.clear(); BEGIN(INITIAL); TOKEN(STRING);
 
 %%

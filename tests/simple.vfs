@@ -1,6 +1,5 @@
 @Take (string a)
-    printf("%d -> %s", 1, a)
-    print " "
+    @Print(format; "%s\n", a)
 End
 
 

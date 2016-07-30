@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-redundant-move -Wno-deprecated-regi
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
-set(SOURCES vfs/type/TypeSys.cpp vfs/type/TypeSys.hpp)
+set(SOURCES)
 
 file(GLOB SOURCES vfs/**/*.cpp)
 

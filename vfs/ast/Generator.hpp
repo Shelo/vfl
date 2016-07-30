@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <map>
 
 #include "../context/Scope.hpp"
 #include "SyntaxTree.hpp"
@@ -9,7 +10,7 @@
 
 class Generator
 {
-private:	
+private:
 	std::shared_ptr<llvm::LLVMContext> context;
 	
 	std::shared_ptr<llvm::Module> module;
@@ -22,12 +23,14 @@ private:
 
 	TypeSys typeSys;
 
+    std::map<std::string, llvm::Function*> funcAlias;
+
 public:
 	Generator() : context(std::shared_ptr<llvm::LLVMContext>(&llvm::getGlobalContext())),
 		module(new llvm::Module("main", *context)), builder(*context) {}
-	
+
 	void generate(std::vector<std::shared_ptr<Function>> program);
-	
+
 	void dump()
 	{
 		module->dump();
@@ -83,5 +86,4 @@ public:
 	llvm::Value * visit(ArrayAssignment & node);
 	llvm::Value * visit(For & node);
 	llvm::Value * visit(Bool & node);
-    llvm::Value * visit(PrintFormat & node);
 };

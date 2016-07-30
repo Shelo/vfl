@@ -51,7 +51,7 @@
 %type <parameterList> parameterList
 %type <block> block
 %type <type> typeName parameterName
-%type <statement> statement assignment return variableDeclaration if print for printf
+%type <statement> statement assignment return variableDeclaration if print for
 %type <expression> expression versionInv functionCall
 %type <expressionList> expressionList
 
@@ -168,7 +168,6 @@ statement:
 	| if
 	| print
 	| for
-	| printf
 	;
 
 assignment:
@@ -332,13 +331,6 @@ print:
 		$$ = new Print(std::shared_ptr<Expression>($2));
 	}
 	;
-
-printf:
-    PRINT_F '(' STRING ',' expressionList ')'
-    {
-        $$ = new PrintFormat(std::make_shared<String>(*$3), *$5);
-    }
-    ;
 
 for:
 	FOR IDENTIFIER ASSIGN expression ',' expression '{' block '}'

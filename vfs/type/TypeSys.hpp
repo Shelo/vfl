@@ -25,6 +25,7 @@ private:
 public:
     llvm::Type * floatTy = llvm::Type::getFloatTy(llvm::getGlobalContext());
     llvm::Type * intTy = llvm::Type::getInt32Ty(llvm::getGlobalContext());
+    llvm::Type * charTy = llvm::Type::getInt8Ty(llvm::getGlobalContext());
     llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());
     llvm::Type * boolTy = llvm::Type::getInt1Ty(llvm::getGlobalContext());
 

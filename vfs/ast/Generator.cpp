@@ -3,6 +3,13 @@
 
 void Generator::generate(std::vector<std::shared_ptr<Function>> program)
 {
+    funcAlias["Print.format"] = llvm::dyn_cast<llvm::Function>(
+            module->getOrInsertFunction("printf", llvm::FunctionType::get(
+                    typeSys.intTy,
+                    llvm::PointerType::get(typeSys.charTy, 0),
+                    true
+            )));
+
     for (auto f : program) {
         f->accept(this);
     }
@@ -134,7 +141,7 @@ llvm::Value * Generator::visit(ArrayAssignment & node)
     auto arrayLoad = builder.CreateLoad(array);
     auto value = node.expression->accept(this);
     auto index = node.index->accept(this);
-    auto ptr = builder.CreateInBoundsGEP(arrayLoad, { index });
+    auto ptr = builder.CreateInBoundsGEP(arrayLoad, index);
 
     return builder.CreateStore(value, ptr);
 }
@@ -164,14 +171,25 @@ llvm::Value * Generator::visit(FunctionCall & node)
     auto function = module->getFunction(node.getVirtualName());
 
     if (function == nullptr) {
-        throw std::runtime_error("Function not defined: " + node.name);
+        if (funcAlias.find(node.getVirtualName()) == funcAlias.end()) {
+            throw std::runtime_error("Function not defined: " + node.name);
+        }
+
+        function = funcAlias[node.getVirtualName()];
     }
 
     // TODO: check arg compatibility.
 
     std::vector<llvm::Value *> values;
     for (auto i : node.arguments) {
-        values.push_back(i->accept(this));
+        auto value = i->accept(this);
+
+        // variadic function promotion.
+        if (function->isVarArg() && value->getType()->isFloatTy()) {
+            value = typeSys.cast(value, typeSys.doubleTy, builder.GetInsertBlock());
+        }
+
+        values.push_back(value);
     }
 
     return builder.CreateCall(function, values);
@@ -326,24 +344,6 @@ llvm::Value * Generator::visit(Print & node)
     }
 
     return builder.CreateCall(print, { format, value });
-}
-
-llvm::Value * Generator::visit(PrintFormat & node)
-{
-    auto print = module->getOrInsertFunction("printf",
-            llvm::FunctionType::get(llvm::IntegerType::getInt32Ty(*context),
-                    llvm::PointerType::get(llvm::Type::getInt8Ty(*context), 0),
-                    true)
-    );
-
-    std::vector<llvm::Value*> idx;
-    idx.push_back(node.format->accept(this));
-
-    for (auto e : node.expressions) {
-        idx.push_back(e->accept(this));
-    }
-
-    return builder.CreateCall(print, idx);
 }
 
 llvm::Value * Generator::visit(For & node)
