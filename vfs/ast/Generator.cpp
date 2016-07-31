@@ -1,7 +1,8 @@
 #include "Generator.hpp"
 
 
-void Generator::generate(std::vector<std::shared_ptr<Function>> program)
+void Generator::generate(std::vector<std::shared_ptr<Function>> program,
+        std::vector<std::shared_ptr<Struct>> structs)
 {
     funcAlias["Print.format"] = llvm::dyn_cast<llvm::Function>(
             module->getOrInsertFunction("printf", llvm::FunctionType::get(
@@ -9,6 +10,10 @@ void Generator::generate(std::vector<std::shared_ptr<Function>> program)
                     llvm::PointerType::get(typeSys.charTy, 0),
                     true
             )));
+
+    for (auto s : structs) {
+        s->accept(this);
+    }
 
     for (auto f : program) {
         f->accept(this);
@@ -19,7 +24,7 @@ llvm::Value * Generator::visit(Function & node)
 {
     std::vector<llvm::Type *> parameterTypes;
     for (auto i : node.parameters) {
-        parameterTypes.push_back(i->type->getType());
+        parameterTypes.push_back(i->type->getType(typeSys));
     }
 
     std::string name = node.name;
@@ -29,7 +34,7 @@ llvm::Value * Generator::visit(Function & node)
         name = node.getVirtualName();
     }
 
-    auto type = llvm::FunctionType::get(node.type->getType(), llvm::makeArrayRef(parameterTypes), false);
+    auto type = llvm::FunctionType::get(node.type->getType(typeSys), parameterTypes, false);
     auto function = llvm::Function::Create(type, llvm::Function::ExternalLinkage, name, module.get());
     lastFunction = &node;
 
@@ -65,7 +70,7 @@ llvm::Value * Generator::visit(Function & node)
 
 llvm::Value * Generator::visit(Parameter & parameter)
 {
-    return builder.CreateAlloca(parameter.type->getType(), nullptr, parameter.name);
+    return builder.CreateAlloca(parameter.type->getType(typeSys), nullptr, parameter.name);
 }
 
 llvm::Value * Generator::visit(Block & node)
@@ -100,14 +105,24 @@ llvm::Value * Generator::visit(VarDecl & node)
 
         type = initial->getType();
     } else {
-        type = node.type->getType();
+        type = node.type->getType(typeSys);
     }
 
     if (node.type && node.type->isArray()) {
         // if this is an array, we should allocate it and then fake it as an initial value.
         auto arrayType = reinterpret_cast<ArrayType*>(node.type.get());
         auto arraySize = arrayType->size->accept(this);
-        initial = builder.CreateAlloca(type, arraySize);
+        initial = builder.CreateAlloca(type->getArrayElementType(), arraySize);
+        type = initial->getType();
+
+        // this flag has to be disabled, since arrays cannot be casted.
+        hasDefinedType = false;
+    }
+
+    if (node.type && node.type->isStruct) {
+        // if this is an array, we should allocate it and then fake it as an initial value.
+        auto structType = typeSys.getStructType(node.type->name);
+        initial = builder.CreateAlloca(structType);
         type = initial->getType();
 
         // this flag has to be disabled, since arrays cannot be casted.
@@ -118,7 +133,7 @@ llvm::Value * Generator::visit(VarDecl & node)
 
     if (initial != nullptr) {
         if (hasDefinedType) {
-            initial = typeSys.cast(initial, node.type->getType(), builder.GetInsertBlock());
+            initial = typeSys.cast(initial, node.type->getType(typeSys), builder.GetInsertBlock());
         }
 
         builder.CreateStore(initial, value);
@@ -423,4 +438,69 @@ llvm::Value * Generator::visit(Bool & node)
 {
     return llvm::ConstantInt::get(llvm::IntegerType::getInt1Ty(llvm::getGlobalContext()),
             (uint64_t) node.boolean, false);
+}
+
+llvm::Value * Generator::visit(Struct & node)
+{
+    std::vector<llvm::Type*> memberTypes;
+    std::vector<std::string> members;
+
+    auto structType = llvm::StructType::create(*context, node.name);
+    typeSys.addStructType(node.name, structType);
+
+    for (auto m : node.members) {
+        members.push_back(m->name);
+        memberTypes.push_back(m->type->getType(typeSys));
+    }
+
+    if (structType->isOpaque()) {
+        structType->setBody(memberTypes, false);
+    }
+
+    typeSys.setStructMembers(node.name, members);
+
+    return nullptr;
+}
+
+llvm::Value * Generator::visit(StructAssignment & node)
+{
+    auto structPtr = scope().get(node.variable);
+    auto load = builder.CreateLoad(structPtr);
+
+    auto underlyingStruct = new llvm::LoadInst(load);
+
+    if (!underlyingStruct->getType()->isStructTy()) {
+        throw std::runtime_error("This is not a struct: " + node.variable);
+    }
+
+    std::string name = underlyingStruct->getType()->getStructName().str();
+    int memberIndex = typeSys.getStructMemberIndex(name, node.member);
+
+    auto value = node.expression->accept(this);
+    auto zero = llvm::ConstantInt::get(typeSys.intTy, 0, true);
+    auto index = llvm::ConstantInt::get(typeSys.intTy, (uint64_t) memberIndex, true);
+    auto ptr = builder.CreateInBoundsGEP(load, { zero, index });
+
+    return builder.CreateStore(value, ptr);
+}
+
+llvm::Value * Generator::visit(StructMember & node)
+{
+    auto structPtr = scope().get(node.variable);
+    auto load = builder.CreateLoad(structPtr);
+
+    auto underlyingStruct = new llvm::LoadInst(load);
+
+    if (!underlyingStruct->getType()->isStructTy()) {
+        throw std::runtime_error("This is not a struct: " + node.variable);
+    }
+
+    std::string name = underlyingStruct->getType()->getStructName().str();
+    int memberIndex = typeSys.getStructMemberIndex(name, node.member);
+
+    auto zero = llvm::ConstantInt::get(typeSys.intTy, 0, true);
+    auto index = llvm::ConstantInt::get(typeSys.intTy, (uint64_t) memberIndex, true);
+    auto ptr = builder.CreateInBoundsGEP(load, { zero, index });
+
+    return builder.CreateLoad(ptr);
 }

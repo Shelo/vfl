@@ -105,3 +105,18 @@ llvm::Value * Bool::accept(Generator * generator)
 {
 	return generator->visit(*this);
 }
+
+llvm::Value * Struct::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}
+
+llvm::Value * StructAssignment::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}
+
+llvm::Value * StructMember::accept(Generator * generator)
+{
+	return generator->visit(*this);
+}

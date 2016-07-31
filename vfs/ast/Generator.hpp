@@ -29,7 +29,8 @@ public:
 	Generator() : context(std::shared_ptr<llvm::LLVMContext>(&llvm::getGlobalContext())),
 		module(new llvm::Module("main", *context)), builder(*context) {}
 
-	void generate(std::vector<std::shared_ptr<Function>> program);
+	void generate(std::vector<std::shared_ptr<Function>> program,
+            std::vector<std::shared_ptr<Struct>> structs);
 
 	void dump()
 	{
@@ -58,6 +59,7 @@ public:
 	}
 
 	llvm::Value * visit(Block & node);
+    llvm::Value * visit(Struct & node);
 	llvm::Value * visit(Function & node);
 	llvm::Value * visit(Parameter & node);
 	llvm::Value * visit(VarDecl & node);
@@ -75,7 +77,9 @@ public:
 	llvm::Value * visit(Print & node);
 	llvm::Value * visit(Array & node);
 	llvm::Value * visit(ArrayIndex & node);
+    llvm::Value * visit(StructMember & node);
 	llvm::Value * visit(ArrayAssignment & node);
+	llvm::Value * visit(StructAssignment & node);
 	llvm::Value * visit(For & node);
 	llvm::Value * visit(Bool & node);
 };

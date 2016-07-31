@@ -19,6 +19,7 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/Support/raw_ostream.h>
+#include "../type/TypeSys.hpp"
 
 
 class Generator;
@@ -41,6 +42,8 @@ struct Type
 {
 	std::string name;
 
+    bool isStruct = false;
+
 	Type(std::string name) : name(name) {}
     virtual ~Type() = default;
 
@@ -54,8 +57,17 @@ struct Type
 		return std::make_shared<Type>("void");
 	}
 
-	virtual llvm::Type * getType()
+    llvm::Type * getStructType(TypeSys & typeSys)
+    {
+        return llvm::PointerType::get(typeSys.getStructType(name), 0);
+    }
+
+	virtual llvm::Type * getType(TypeSys & typeSys)
 	{
+        if (isStruct) {
+            return getStructType(typeSys);
+        }
+
 		if (name == "int") {
 			return llvm::Type::getInt32Ty(llvm::getGlobalContext());
 		}
@@ -66,6 +78,10 @@ struct Type
 
 		if (name == "string") {
             return llvm::Type::getInt8PtrTy(llvm::getGlobalContext());
+		}
+
+		if (name == "bool") {
+			return llvm::Type::getInt1Ty(llvm::getGlobalContext());
 		}
 
 		return llvm::Type::getVoidTy(llvm::getGlobalContext());
@@ -109,6 +125,19 @@ struct Block
 	bool returns = false;
 
 	virtual llvm::Value * accept(Generator * generator);
+};
+
+struct Struct
+{
+    std::string name;
+    std::vector<std::shared_ptr<Parameter>> members;
+
+    Struct(std::string name, std::vector<std::shared_ptr<Parameter>> members) :
+            name(name), members(members) {}
+
+    virtual ~Struct() = default;
+
+    virtual llvm::Value * accept(Generator * generator);
 };
 
 struct Function
@@ -195,6 +224,20 @@ struct ArrayAssignment : Statement
 	virtual llvm::Value * accept(Generator * generator);
 };
 
+struct StructAssignment : Statement
+{
+    std::string variable;
+    std::string member;
+    std::shared_ptr<Expression> expression;
+
+    StructAssignment(std::string variable, std::string member, std::shared_ptr<Expression> expression) :
+            variable(variable), member(member), expression(expression) {}
+
+    virtual ~StructAssignment() = default;
+
+    virtual llvm::Value * accept(Generator * generator);
+};
+
 struct Return : Statement
 {
 	std::shared_ptr<Expression> expression;
@@ -272,7 +315,6 @@ struct FunctionCall : Expression
 
 struct VersionInv : Expression
 {
-	std::string name;
 	std::string version;
 	std::vector<std::shared_ptr<Expression>> arguments;
 
@@ -346,23 +388,17 @@ struct Float : Expression
 struct ArrayType : Type
 {
 	std::shared_ptr<Expression> size;
-	bool isParameter = false;
 
 	ArrayType(std::string name, std::shared_ptr<Expression> size) : Type(name), size(size) {}
 	ArrayType(std::string name) : ArrayType(name, std::make_shared<Integer>(1)) {}
 
     virtual ~ArrayType() = default;
 
-	virtual llvm::Type * getType()
-	{
-		auto type = Type::getType();
-
-		if (isParameter) {
-			return llvm::PointerType::getUnqual(type);
-		}
-
-		return type;
-	}
+    virtual llvm::Type * getType(TypeSys & typeSys)
+    {
+        auto type = Type::getType(typeSys);
+        return llvm::PointerType::get(type, 0);
+    }
 
 	virtual bool isArray()
 	{
@@ -393,6 +429,20 @@ struct ArrayIndex : Expression
 
 	virtual llvm::Value * accept(Generator * generator);
 };
+
+struct StructMember : Expression
+{
+    std::string variable;
+    std::string member;
+
+    StructMember(std::string variable, std::string member) :
+            variable(variable), member(member) {}
+
+    virtual ~StructMember() = default;
+
+    virtual llvm::Value * accept(Generator * generator);
+};
+
 
 struct For : Statement
 {

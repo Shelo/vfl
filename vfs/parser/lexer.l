@@ -28,6 +28,7 @@ End                   	TOKEN(END);
 true 					TOKEN(TRUE);
 false 					TOKEN(FALSE);
 @[A-Z][a-zA-Z0-9]*    	yylval.string = new std::string(yytext + 1, yyleng - 1); TOKEN(FUNCTION_NAME);
+#[A-Z][a-zA-Z0-9]*    	yylval.string = new std::string(yytext + 1, yyleng - 1); TOKEN(STRUCT_NAME);
 [a-z][a-zA-Z0-9]*      	yylval.string = new std::string(yytext, yyleng); TOKEN(IDENTIFIER);
 [0-9]+\.[0-9]*f        	yylval.floatNumber = std::stof(yytext); TOKEN(FLOAT);
 [0-9]+                  yylval.integer = std::stoi(yytext); TOKEN(INTEGER);

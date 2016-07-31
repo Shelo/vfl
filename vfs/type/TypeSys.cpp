@@ -157,3 +157,49 @@ llvm::CmpInst::Predicate TypeSys::getCmpPredicate(llvm::Type * type, std::string
     throw std::runtime_error("Not a comparison operator: " + op);
 }
 
+void TypeSys::addStructType(std::string name, llvm::StructType * type)
+{
+    if (structTypes.find(name) != structTypes.end()) {
+        throw std::runtime_error("Struct type already defined: " + name);
+    }
+
+    structTypes[name] = std::pair<llvm::StructType*, std::vector<std::string>>(type,
+            std::vector<std::string>());
+}
+
+llvm::StructType * TypeSys::getStructType(std::string name)
+{
+    if (structTypes.find(name) == structTypes.end()) {
+        throw std::runtime_error("Struct type not defined: " + name);
+    }
+
+    return structTypes[name].first;
+}
+
+int TypeSys::getStructMemberIndex(std::string structName, std::string member)
+{
+    auto it = structTypes.find(structName);
+
+    if (it == structTypes.end()) {
+        throw std::runtime_error("Unknown struct: " + structName);
+    }
+
+    std::vector<std::string> members = it->second.second;
+
+    for (int i = 0; i < members.size(); ++i) {
+        if (members[i] == member) {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("Unknown member: " + member + " for struct: " + structName);
+}
+
+void TypeSys::setStructMembers(std::string name, std::vector<std::string> members)
+{
+    auto it = structTypes.find(name);
+
+    if (it != structTypes.end()) {
+        it->second.second = members;
+    }
+}

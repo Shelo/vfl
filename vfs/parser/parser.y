@@ -11,7 +11,9 @@
 	int yydebug = 1;
 
 	extern int yylex();
+
 	extern std::vector<std::shared_ptr<Function>> program;
+	extern std::vector<std::shared_ptr<Struct>> structs;
 
 	void yyerror(const char *str)
 	{
@@ -26,6 +28,7 @@
 
 	Block * block;
 	Function * function;
+	Struct * structDef;
 	Statement * statement;
 	Expression * expression;
 	Type * type;
@@ -43,12 +46,11 @@
 %token <token> PLUS MINUS MULT DIV EQ NEQ LESS GREATER LEQ GEQ MOD
 %token <integer> INTEGER
 %token <floatNumber> FLOAT
-%token <string> FUNCTION_NAME
-%token <string> IDENTIFIER
-%token <string> STRING
+%token <string> FUNCTION_NAME STRUCT_NAME IDENTIFIER STRING
 
+%type <structDef> struct
 %type <function> function
-%type <parameterList> parameterList
+%type <parameterList> parameterList structMembers
 %type <block> block
 %type <type> typeName parameterName
 %type <statement> statement assignment return variableDeclaration if print for
@@ -73,6 +75,10 @@ program:
 	{
 		program.push_back(std::shared_ptr<Function>($2));
 	}
+	| program struct
+    {
+        structs.push_back(std::shared_ptr<Struct>($2));
+    }
 	;
 
 function:
@@ -110,6 +116,31 @@ parameterList:
 	}
 	;
 
+struct:
+    STRUCT_NAME structMembers END
+    {
+        $$ = new Struct(*$1, *$2);
+    }
+    ;
+
+structMembers:
+    // empty.
+    {
+        $$ = new std::vector<std::shared_ptr<Parameter>>();
+    }
+    | structMembers IDENTIFIER IDENTIFIER
+    {
+        $1->push_back(std::make_shared<Parameter>(*$3, std::make_shared<Type>(*$2)));
+    }
+    | structMembers STRUCT_NAME IDENTIFIER
+    {
+        auto type = std::make_shared<Type>(*$2);
+        type->isStruct = true;
+        $1->push_back(std::make_shared<Parameter>(*$3, type));
+    }
+    ;
+
+
 variableDeclaration:
 	VAR IDENTIFIER ':' typeName ASSIGN expression
 	{
@@ -134,6 +165,11 @@ typeName:
 	{
 		$$ = new ArrayType(*$1, std::shared_ptr<Expression>($3));
 	}
+	| STRUCT_NAME
+	{
+	    $$ = new Type(*$1);
+	    $$->isStruct = true;
+	}
 	;
 
 parameterName:
@@ -141,7 +177,6 @@ parameterName:
 	| IDENTIFIER '[' ']'
 	{
 		auto arrayType = new ArrayType(*$1);
-		arrayType->isParameter = true;
 		$$ = arrayType;
 	}
 	;
@@ -179,6 +214,10 @@ assignment:
 	{
 		$$ = new ArrayAssignment(*$1, std::shared_ptr<Expression>($3), std::shared_ptr<Expression>($6));
 	}
+	| IDENTIFIER '.' IDENTIFIER ASSIGN expression
+	{
+		$$ = new StructAssignment(*$1, *$3, std::shared_ptr<Expression>($5));
+	}
 	;
 
 expression:
@@ -191,6 +230,10 @@ expression:
 	| IDENTIFIER '[' expression ']'
 	{
 		$$ = new ArrayIndex(*$1, std::shared_ptr<Expression>($3));
+	}
+	| IDENTIFIER '.' IDENTIFIER
+	{
+		$$ = new StructMember(*$1, *$3);
 	}
 	| IDENTIFIER
 	{

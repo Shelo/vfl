@@ -14,6 +14,8 @@ private:
 
     std::map<std::pair<llvm::Type*, std::string>, llvm::Instruction::BinaryOps> mathOpTab;
 
+    std::map<std::string, std::pair<llvm::StructType*, std::vector<std::string>>> structTypes;
+
     void addCoercion(llvm::Type *l, llvm::Type *r, llvm::Type *result);
 
     void addCast(llvm::Type * from, llvm::Type * to, llvm::CastInst::CastOps op);
@@ -67,6 +69,14 @@ public:
     bool isFP(llvm::Type * type);
 
     llvm::CmpInst::Predicate getCmpPredicate(llvm::Type * type, std::string op);
+
+    void addStructType(std::string name, llvm::StructType * type);
+
+    void setStructMembers(std::string name, std::vector<std::string> members);
+
+    llvm::StructType * getStructType(std::string name);
+
+    int getStructMemberIndex(std::string structName, std::string member);
 };
 
 #endif //VFS_TYPESYS_HPP

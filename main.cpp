@@ -8,6 +8,7 @@
 extern int yyparse();
 
 std::vector<std::shared_ptr<Function>> program;
+std::vector<std::shared_ptr<Struct>> structs;
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
         yyparse();
 
         try {
-            generator.generate(program);
+            generator.generate(program, structs);
             generator.dump();
         } catch (const std::exception & e) {
             std::cerr << "Generation error:" << std::endl;
