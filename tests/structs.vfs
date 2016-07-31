@@ -1,0 +1,17 @@
+#MyType
+    int next
+    int a
+End
+
+
+@Take (#MyType type)
+    type.a = 20
+End
+
+
+@Main ()
+    var type:#MyType
+    type.a = 10
+
+    @Take(type)
+End
