@@ -19,7 +19,11 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/Support/raw_ostream.h>
+
 #include "../type/TypeSys.hpp"
+
+
+struct Type;
 
 
 class Generator;
@@ -36,74 +40,6 @@ struct Expression
 {
     virtual ~Expression() = default;
 	virtual llvm::Value * accept(Generator * generator) = 0;
-};
-
-struct Type
-{
-	std::string name;
-
-    bool isStruct = false;
-
-	Type(std::string name) : name(name) {}
-    virtual ~Type() = default;
-
-	static std::shared_ptr<Type> create(std::string name)
-	{
-		return std::make_shared<Type>(name);
-	}
-
-	static std::shared_ptr<Type> createVoid()
-	{
-		return std::make_shared<Type>("void");
-	}
-
-    llvm::Type * getStructType(TypeSys & typeSys)
-    {
-        return llvm::PointerType::get(typeSys.getStructType(name), 0);
-    }
-
-	virtual llvm::Type * getType(TypeSys & typeSys)
-	{
-        if (isStruct) {
-            return getStructType(typeSys);
-        }
-
-		if (name == "int") {
-			return llvm::Type::getInt32Ty(llvm::getGlobalContext());
-		}
-
-		if (name == "float") {
-			return llvm::Type::getFloatTy(llvm::getGlobalContext());
-		}
-
-		if (name == "string") {
-            return llvm::Type::getInt8PtrTy(llvm::getGlobalContext());
-		}
-
-		if (name == "bool") {
-			return llvm::Type::getInt1Ty(llvm::getGlobalContext());
-		}
-
-		return llvm::Type::getVoidTy(llvm::getGlobalContext());
-	}
-
-	llvm::Value * getDefaultValue(std::shared_ptr<llvm::LLVMContext> context)
-	{
-		if (name == "int") {
-			return llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), 0, true);
-		}
-
-		if (name == "float") {
-			return llvm::ConstantFP::get(llvm::Type::getFloatTy(*context), 0);
-		}
-
-		return nullptr;
-	}
-
-	virtual bool isArray()
-	{
-		return false;
-	}
 };
 
 struct Parameter
@@ -153,8 +89,7 @@ struct Function
 		name(name), version(version), parameters(parameters), type(type), block(block) {}
 
 	Function(std::string name, std::string version, std::vector<std::shared_ptr<Parameter>> parameters,
-			std::shared_ptr<Block> block) :
-		Function(name, version, parameters, Type::createVoid(), block) {}
+			std::shared_ptr<Block> block);
 
     virtual ~Function() = default;
 
@@ -383,27 +318,6 @@ struct Float : Expression
     virtual ~Float() = default;
 
 	virtual llvm::Value * accept(Generator * generator);
-};
-
-struct ArrayType : Type
-{
-	std::shared_ptr<Expression> size;
-
-	ArrayType(std::string name, std::shared_ptr<Expression> size) : Type(name), size(size) {}
-	ArrayType(std::string name) : ArrayType(name, std::make_shared<Integer>(1)) {}
-
-    virtual ~ArrayType() = default;
-
-    virtual llvm::Type * getType(TypeSys & typeSys)
-    {
-        auto type = Type::getType(typeSys);
-        return llvm::PointerType::get(type, 0);
-    }
-
-	virtual bool isArray()
-	{
-		return true;
-	}
 };
 
 struct Array : Expression

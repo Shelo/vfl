@@ -1,5 +1,11 @@
 #include "SyntaxTree.hpp"
+
 #include "Generator.hpp"
+#include "../type/Types.hpp"
+
+Function::Function(std::string name, std::string version, std::vector<std::shared_ptr<Parameter>> parameters,
+				   std::shared_ptr<Block> block) :
+		Function(name, version, parameters, Type::createVoid(), block) {}
 
 llvm::Value * Block::accept(Generator * generator)
 {

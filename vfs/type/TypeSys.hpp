@@ -30,6 +30,8 @@ public:
     llvm::Type * charTy = llvm::Type::getInt8Ty(llvm::getGlobalContext());
     llvm::Type * doubleTy = llvm::Type::getDoubleTy(llvm::getGlobalContext());
     llvm::Type * boolTy = llvm::Type::getInt1Ty(llvm::getGlobalContext());
+    llvm::Type * stringTy = llvm::Type::getInt8PtrTy(llvm::getGlobalContext());
+    llvm::Type * voidTy = llvm::Type::getVoidTy(llvm::getGlobalContext());
 
     TypeSys();
 

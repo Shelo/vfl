@@ -1,4 +1,5 @@
 #include "Generator.hpp"
+#include "../type/Types.hpp"
 
 
 void Generator::generate(std::vector<std::shared_ptr<Function>> program,
@@ -119,13 +120,13 @@ llvm::Value * Generator::visit(VarDecl & node)
         hasDefinedType = false;
     }
 
-    if (node.type && node.type->isStruct) {
-        // if this is an array, we should allocate it and then fake it as an initial value.
+    if (node.type && node.type->isStruct()) {
+        // if this is a struct, we should allocate it and then fake it as an initial value.
         auto structType = typeSys.getStructType(node.type->name);
         initial = builder.CreateAlloca(structType);
         type = initial->getType();
 
-        // this flag has to be disabled, since arrays cannot be casted.
+        // this flag has to be disabled, since structs cannot be casted.
         hasDefinedType = false;
     }
 

@@ -4,6 +4,7 @@
 	#include <vector>
 	#include <memory>
 
+	#include "../type/Types.hpp"
 	#include "../ast/SyntaxTree.hpp"
 
 	size_t yyline = 1;
@@ -134,9 +135,7 @@ structMembers:
     }
     | structMembers STRUCT_NAME IDENTIFIER
     {
-        auto type = std::make_shared<Type>(*$2);
-        type->isStruct = true;
-        $1->push_back(std::make_shared<Parameter>(*$3, type));
+        $1->push_back(std::make_shared<Parameter>(*$3, std::make_shared<StructType>(*$2)));
     }
     ;
 
@@ -167,8 +166,7 @@ typeName:
 	}
 	| STRUCT_NAME
 	{
-	    $$ = new Type(*$1);
-	    $$->isStruct = true;
+	    $$ = new StructType(*$1);
 	}
 	;
 
@@ -176,8 +174,7 @@ parameterName:
 	typeName
 	| IDENTIFIER '[' ']'
 	{
-		auto arrayType = new ArrayType(*$1);
-		$$ = arrayType;
+		$$ = new ArrayType(*$1);
 	}
 	;
 
