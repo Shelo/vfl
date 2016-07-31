@@ -4,14 +4,14 @@
 End
 
 
-@Take (#MyType type)
-    type.a = 20
+@MyType (#MyType type)
+    type.a = 42
 End
 
 
 @Main ()
     var type:#MyType
-    type.a = 10
+    @MyType(type)
 
-    @Take(type)
+    print type.a
 End

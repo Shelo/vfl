@@ -1,17 +1,28 @@
-#MyType
-    int next
-    int a
+#Book
+    string title
+    string author
+    string subject
+    int bookId
 End
 
 
-@Take (#MyType type)
-    type.a = 20
+@Book (init; #Book self, string title, string author, string subject, int bookId)
+    self.title = title
+    self.author = author
+    self.subject = subject
+    self.bookId = bookId
+End
+
+
+@Book (show; #Book self)
+    @Print(format; "Title: %s\nAuthor: %s\n", self.title, self.author)
 End
 
 
 @Main ()
-    var type:#MyType
-    type.a = 10
+    var someBook:#Book
+    @Book(init; someBook, "SomeBook", "SomeAuthor", "SomeSubject", 10)
 
-    @Take(type)
+    var books = [someBook]
+    @Book(show; books[0])
 End
